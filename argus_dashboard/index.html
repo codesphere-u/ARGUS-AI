@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARGUS AI — Autonomous Multi-Agent Trading Desk</title>
+  <meta name="description" content="An autonomous multi-agent AI trading desk that can disagree with itself. Powered by Alpaca, Gemini, and deterministic risk guardrails.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Emergency Alert Banner -->
+  <div id="killSwitchBanner" class="kill-switch-banner hidden">
+    <div class="banner-content">
+      <span class="pulse-icon">🚨</span>
+      <div>
+        <strong>EMERGENCY KILL SWITCH ENGAGED:</strong>
+        <span id="killSwitchReason">Daily drawdown threshold breached. Portfolio frozen.</span>
+      </div>
+      <button id="resetKillSwitchBtn" class="btn-banner-reset">Reset Desk (Override)</button>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-badge">
+        <span class="logo-symbol">🛡️</span>
+        <div class="logo-text">
+          <h1>ARGUS AI</h1>
+          <span class="sub-logo">AUTONOMOUS MULTI-AGENT TRADING DESK</span>
+        </div>
+      </div>
+      <div class="desk-motto">
+        <span class="quote">“An AI trading desk that knows when to disagree with itself.”</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="status-chip chip-online">
+        <span class="dot"></span>
+        <span>ALPACA API: <strong id="alpacaModeText">CONNECTED (PAPER)</strong></span>
+      </div>
+      <div class="status-chip" id="killSwitchBadge">
+        <span class="dot green-dot"></span>
+        <span>CIRCUIT BREAKER: <strong>ARMED</strong></span>
+      </div>
+      <button id="manualKillSwitchBtn" class="btn-kill-switch">
+        <span>🚨</span> TRIP KILL SWITCH
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-main">
+    <!-- Top Metrics Row -->
+    <section class="metrics-bar">
+      <div class="metric-card">
+        <span class="metric-label">Account Equity</span>
+        <div class="metric-value" id="accountEquityDisplay">$100,000.00</div>
+        <span class="metric-trend text-green">+3.42% Total Return</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Buying Power</span>
+        <div class="metric-value" id="buyingPowerDisplay">$200,000.00</div>
+        <span class="metric-sub">2.0x Margin Leverage</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Daily Drawdown</span>
+        <div class="metric-value text-green" id="dailyDrawdownDisplay">0.42%</div>
+        <span class="metric-sub">Max Limit: 3.00%</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Loss Streak</span>
+        <div class="metric-value" id="lossStreakDisplay">0 / 3</div>
+        <span class="metric-sub">Auto-halt at 3 consecutive</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Passports Processed</span>
+        <div class="metric-value text-cyan" id="passportsCountDisplay">24</div>
+        <span class="metric-sub">Veto Rate: <strong>37.5%</strong></span>
+      </div>
+    </section>
+
+    <!-- Interactive Navigation Tabs -->
+    <nav class="desk-tabs">
+      <button class="tab-btn active" data-tab="committee">🏛️ Live Committee Chamber</button>
+      <button class="tab-btn" data-tab="passports">📜 Trade Passport Archive</button>
+      <button class="tab-btn" data-tab="benchmark">⚡ Blind Bot vs. ARGUS AI</button>
+      <button class="tab-btn" data-tab="risk">🛡️ Risk Engine & Guardrails</button>
+    </nav>
+
+    <!-- Tab 1: Live Committee Chamber -->
+    <section id="tab-committee" class="tab-content active">
+      <div class="chamber-grid">
+        <!-- Left: Asset Selector & Scanner -->
+        <div class="panel scanner-panel">
+          <div class="panel-header">
+            <h3>🎯 Market Opportunity Scanner</h3>
+            <span class="badge badge-pulse">LIVE FEED</span>
+          </div>
+
+          <div class="scanner-controls">
+            <label for="tickerSelect">Select Target Asset:</label>
+            <div class="select-group">
+              <select id="tickerSelect" class="form-select">
+                <option value="NVDA" data-price="148.50" data-rsi="76.2" data-vix="26.4" data-trend="BULLISH_OVERBOUGHT">NVDA — NVIDIA Corp (Overbought Test)</option>
+                <option value="BTC/USD" data-price="88420.00" data-rsi="56.8" data-vix="18.5" data-trend="BULLISH_HEALTHY">BTC/USD — Bitcoin (Healthy Trend)</option>
+                <option value="TSLA" data-price="214.30" data-rsi="44.1" data-vix="22.1" data-trend="CHOPPY">TSLA — Tesla Inc (Choppy Consolidation)</option>
+                <option value="SPY" data-price="554.20" data-rsi="52.0" data-vix="15.8" data-trend="MILD_BULLISH">SPY — S&P 500 ETF (Macro Driver)</option>
+                <option value="ETH/USD" data-price="3120.00" data-rsi="33.5" data-vix="21.0" data-trend="OVERSOLD_REBOUND">ETH/USD — Ethereum (Mean Reversion)</option>
+                <option value="AMD" data-price="152.80" data-rsi="81.5" data-vix="29.0" data-trend="EXTREME_TRAP">AMD — Advanced Micro Devices (Severe Trap)</option>
+              </select>
+              <button id="conveneCommitteeBtn" class="btn-primary">
+                <span>🏛️</span> Convene Committee
+              </button>
+            </div>
+          </div>
+
+          <div class="asset-preview-card" id="assetPreviewCard">
+            <div class="asset-row">
+              <div class="asset-name-block">
+                <span class="ticker-symbol" id="previewTicker">NVDA</span>
+                <span class="ticker-class" id="previewClass">US EQUITY</span>
+              </div>
+              <div class="asset-price-block">
+                <span class="current-price" id="previewPrice">$148.50</span>
+                <span class="price-change text-green">+4.12% 24h</span>
+              </div>
+            </div>
+            <div class="telemetry-grid">
+              <div class="telemetry-item">
+                <span class="label">RSI (14)</span>
+                <span class="val text-red" id="previewRSI">76.2</span>
+              </div>
+              <div class="telemetry-item">
+                <span class="label">ATR (14)</span>
+                <span class="val" id="previewATR">$4.20</span>
+              </div>
+              <div class="telemetry-item">
+                <span class="label">Market VIX</span>
+                <span class="val text-yellow" id="previewVIX">26.4</span>
+              </div>
+              <div class="telemetry-item">
+                <span class="label">24h Vol</span>
+                <span class="val" id="previewVolume">$48.2M</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Stats Box -->
+          <div class="info-box">
+            <h4>💡 How the Deliberation Works</h4>
+            <p>1. <strong>Quant, News & Macro Agents</strong> evaluate their domains and cast directional votes.</p>
+            <p>2. <strong>Devil's Advocate</strong> stress-tests the proposal to uncover liquidity traps, fakeouts, and risks.</p>
+            <p>3. If Disqualification Risk &ge; 75%, Devil's Advocate exercises an <strong>adversarial VETO</strong> to protect capital.</p>
+            <p>4. Approved trades are routed to <strong>Risk Commander</strong> for dynamic ATR brackets and dispatched to <strong>Alpaca</strong>.</p>
+          </div>
+        </div>
+
+        <!-- Right: The Committee Deliberation Chamber -->
+        <div class="panel deliberation-panel">
+          <div class="panel-header">
+            <h3>🏛️ Live Multi-Agent Deliberation & Debate</h3>
+            <span class="badge" id="deliberationStatusBadge">READY</span>
+          </div>
+
+          <!-- Agent Deliberation Cards Container -->
+          <div class="agent-cards-container" id="agentCardsContainer">
+            <!-- Cards will be dynamically injected / animated -->
+            <div class="chamber-placeholder" id="chamberPlaceholder">
+              <span class="icon">⚖️</span>
+              <h4>Investment Committee is in Recess</h4>
+              <p>Select an asset and click <strong>"Convene Committee"</strong> to trigger real-time multi-agent deliberation, adversarial stress-testing, and Trade Passport generation.</p>
+            </div>
+          </div>
+
+          <!-- Live Consensus Footer -->
+          <div class="consensus-footer hidden" id="consensusFooter">
+            <div class="consensus-status-banner" id="consensusBanner">
+              <div class="status-left">
+                <span class="status-icon" id="consensusIcon">🛡️</span>
+                <div>
+                  <h4 id="consensusVerdictTitle">DECISION: APPROVED</h4>
+                  <p id="consensusSummaryText">Multi-agent alignment confirmed with favorable risk-reward.</p>
+                </div>
+              </div>
+              <div class="status-right">
+                <button id="viewGeneratedPassportBtn" class="btn-secondary">View Trade Passport 📜</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 2: Trade Passport Archive -->
+    <section id="tab-passports" class="tab-content">
+      <div class="panel passport-archive-panel">
+        <div class="panel-header">
+          <div>
+            <h3>📜 Immutable Trade Passport Ledger</h3>
+            <p class="subtitle">Cryptographic-style audit records of every trade proposed, modified, or vetoed by the Committee.</p>
+          </div>
+          <div class="filter-group">
+            <button class="filter-btn active" data-filter="ALL">All (24)</button>
+            <button class="filter-btn" data-filter="APPROVED">Approved (11)</button>
+            <button class="filter-btn" data-filter="DOWNSIZED">Downsized (4)</button>
+            <button class="filter-btn" data-filter="VETOED">Vetoed (9)</button>
+          </div>
+        </div>
+
+        <div class="passports-grid" id="passportsGrid">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 3: Blind Bot vs ARGUS AI Benchmark -->
+    <section id="tab-benchmark" class="tab-content">
+      <div class="benchmark-container">
+        <div class="benchmark-hero">
+          <h2>⚡ The Power of Adversarial AI: Blind Bot vs. ARGUS AI</h2>
+          <p>See what happens when an autonomous agent trades with vs. without internal dissent and deterministic guardrails.</p>
+        </div>
+
+        <div class="benchmark-scenarios">
+          <button class="scenario-btn active" data-scenario="0">Scenario 1: The RSI 82 Breakout Trap (NVDA)</button>
+          <button class="scenario-btn" data-scenario="1">Scenario 2: The Pre-FOMC Volatility Flush (SPY)</button>
+          <button class="scenario-btn" data-scenario="2">Scenario 3: Low-Liquidity Crypto Whipsaw (ETH)</button>
+        </div>
+
+        <div class="comparison-arena" id="comparisonArena">
+          <!-- Dynamically updated -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 4: Risk Engine & Guardrails -->
+    <section id="tab-risk" class="tab-content">
+      <div class="risk-dashboard-grid">
+        <div class="panel risk-config-panel">
+          <div class="panel-header">
+            <h3>🛡️ Deterministic Risk Parameters</h3>
+            <span class="badge badge-success">ENFORCED</span>
+          </div>
+          <div class="config-table">
+            <div class="config-row">
+              <span class="config-title">Max Account Risk Per Trade</span>
+              <span class="config-val">1.00% ($1,000 USD)</span>
+            </div>
+            <div class="config-row">
+              <span class="config-title">Stop-Loss Bracket Distance</span>
+              <span class="config-val">1.50 &times; ATR (14-period)</span>
+            </div>
+            <div class="config-row">
+              <span class="config-title">Take-Profit Target Minimum</span>
+              <span class="config-val">2.00 &times; Stop Distance (1:2 R/R)</span>
+            </div>
+            <div class="config-row">
+              <span class="config-title">Max Single Position Exposure</span>
+              <span class="config-val">20.00% of Total Portfolio</span>
+            </div>
+            <div class="config-row">
+              <span class="config-title">Devil's Advocate Veto Threshold</span>
+              <span class="config-val">&ge; 75.0% Trap Risk</span>
+            </div>
+            <div class="config-row">
+              <span class="config-title">Devil's Advocate Downsize Threshold</span>
+              <span class="config-val">&ge; 45.0% Risk (50% Size Cut)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel circuit-breaker-panel">
+          <div class="panel-header">
+            <h3>⚡ Emergency Circuit Breakers (Kill Switch)</h3>
+            <span class="badge badge-pulse">ACTIVE MONITOR</span>
+          </div>
+
+          <div class="breakers-list">
+            <div class="breaker-item">
+              <div class="breaker-info">
+                <strong>1. Max Daily Drawdown Guard</strong>
+                <p>Halts all trading if daily portfolio drawdown exceeds 3.0%.</p>
+              </div>
+              <div class="breaker-status status-armed">ARMED (0.42% / 3.0%)</div>
+            </div>
+
+            <div class="breaker-item">
+              <div class="breaker-info">
+                <strong>2. Consecutive Loss Streak Guard</strong>
+                <p>Suspends execution for cooling-off period after 3 consecutive stop-outs.</p>
+              </div>
+              <div class="breaker-status status-armed">ARMED (0 / 3)</div>
+            </div>
+
+            <div class="breaker-item">
+              <div class="breaker-info">
+                <strong>3. Macro Volatility Spike Guard</strong>
+                <p>Freezes execution if Market VIX spikes &ge; 38.0 points.</p>
+              </div>
+              <div class="breaker-status status-armed">ARMED (VIX 18.5)</div>
+            </div>
+          </div>
+
+          <div class="kill-switch-action-box">
+            <p>Engaging the kill switch immediately freezes the desk, cancels all open Alpaca working orders, and prevents automated re-entry until manual review.</p>
+            <button id="testTripKillSwitchBtn" class="btn-danger">
+              Test Circuit Breaker Trip ⚡
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: Passport Inspector -->
+  <div id="passportModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modalPassportTitle">TRADE PASSPORT: NVDA</h3>
+        <button id="closeModalBtn" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body" id="modalPassportBody">
+        <!-- Content inserted dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
