@@ -1,13 +1,14 @@
-# 📐 ARGUS AI: Technical Architecture & System Specifications
+# 📐 ARGUS AI 2.0: Technical Architecture & System Specifications
 
 ## 1. System Overview
 
-**ARGUS AI** is designed around the concept of **Adversarial Deliberation and Deterministic Guardrails**. Unlike standard predictive trading systems that pass single scalar predictions directly to an execution engine, ARGUS AI forces every trade hypothesis through a 4-tier pipeline:
+**ARGUS AI 2.0** is designed around the concept of **Adversarial Deliberation, Continuous Online Learning, and Deterministic Guardrails**. Unlike standard predictive trading systems that pass single scalar predictions directly to an execution engine, ARGUS AI forces every trade hypothesis through a 5-tier pipeline:
 
-1. **Thesis Generation Layer**: Independent domain agents evaluate market signals without cross-contamination.
-2. **Adversarial Challenge Layer**: A dedicated adversarial agent (Devil's Advocate) stress-tests the trade hypothesis to uncover structural risks.
-3. **Deterministic Governance Layer**: Mathematical risk parameters (ATR brackets, equity budgeting) and circuit breakers validate trade safety.
-4. **Execution & Audit Layer**: Orders are formatted into bracket structures for Alpaca, while full deliberation provenance is archived to immutable Trade Passports.
+1. **Thesis Generation Layer**: Independent domain agents (Quant, News, Macro, Options Flow) evaluate market signals without cross-contamination.
+2. **Online Learning & Adaptive Weighting**: Agent voting weights are dynamically calibrated using Bayesian updating based on real closed PnL.
+3. **Adversarial Challenge Layer**: The Devil's Advocate stress-tests the trade hypothesis to uncover structural risks and holds unilateral VETO authority.
+4. **Deterministic Governance Layer**: Mathematical risk parameters (ATR brackets, equity budgeting) and circuit breakers validate trade safety.
+5. **Execution, Streaming & MCP Layer**: Orders are routed to Alpaca via atomic bracket orders or exposed to AI assistants through the official Model Context Protocol (MCP) server.
 
 ---
 
@@ -16,17 +17,18 @@
 ### 2.1 Multi-Agent Composite Score
 Each domain agent outputs a directional score $S_i \in [-100, +100]$ and a confidence level $C_i \in [0.0, 1.0]$. The committee orchestrator computes the weighted composite score $S_{\text{composite}}$ and average confidence $C_{\text{avg}}$:
 
-$$S_{\text{composite}} = w_{\text{quant}} S_{\text{quant}} + w_{\text{news}} S_{\text{news}} + w_{\text{macro}} S_{\text{macro}}$$
+$$S_{\text{composite}} = w_{\text{quant}} S_{\text{quant}} + w_{\text{news}} S_{\text{news}} + w_{\text{macro}} S_{\text{macro}} + w_{\text{options}} S_{\text{options}}$$
 
-$$C_{\text{avg}} = w_{\text{quant}} C_{\text{quant}} + w_{\text{news}} C_{\text{news}} + w_{\text{macro}} C_{\text{macro}}$$
+$$C_{\text{avg}} = w_{\text{quant}} C_{\text{quant}} + w_{\text{news}} C_{\text{news}} + w_{\text{macro}} C_{\text{macro}} + w_{\text{options}} C_{\text{options}}$$
 
-**Standard Institutional Weights:**
-- $w_{\text{quant}} = 0.40$ (Technical alignment, momentum, volatility)
-- $w_{\text{news}} = 0.30$ (Headline sentiment, filings, earnings)
-- $w_{\text{macro}} = 0.30$ (Sector rotation, index beta, VIX regime)
+### 2.2 Adaptive Bayesian Online Learning
+Rather than fixed static weights, agent weights evolve continuously. When a trade closes, the `AdaptiveWeightManager` computes the performance delta $\Delta_i \in \{-1.0, +1.0\}$:
 
-### 2.2 Directional Classification
-$$\text{Proposed Direction} = \begin{cases} \text{LONG} & \text{if } S_{\text{composite}} \ge 0 \\ \text{SHORT} & \text{if } S_{\text{composite}} < 0 \end{cases}$$
+$$\tilde{w}_i(t+1) = w_i(t) \cdot \exp\left(\eta \cdot \Delta_i\right)$$
+
+$$w_i(t+1) = \frac{\tilde{w}_i(t+1)}{\sum_j \tilde{w}_j(t+1)} \quad (\text{bounded } [0.05, 0.60])$$
+
+*Where $\eta = 0.08$ is the online learning rate.*
 
 ---
 
@@ -73,14 +75,10 @@ $$\text{Stop Loss Distance } D_{\text{SL}} = 1.50 \times \text{ATR}_{14}$$
 $$\text{Take Profit Distance } D_{\text{TP}} = D_{\text{SL}} \times \text{RR}_{\text{min}} \quad (\text{where } \text{RR}_{\text{min}} = 2.00)$$
 
 For LONG positions:
-$$\text{Target Entry} = P_{\text{current}}$$
-$$\text{Stop Loss} = P_{\text{current}} - D_{\text{SL}}$$
-$$\text{Take Profit} = P_{\text{current}} + D_{\text{TP}}$$
+$$\text{Target Entry} = P_{\text{current}}, \quad \text{Stop Loss} = P_{\text{current}} - D_{\text{SL}}, \quad \text{Take Profit} = P_{\text{current}} + D_{\text{TP}}$$
 
 For SHORT positions:
-$$\text{Target Entry} = P_{\text{current}}$$
-$$\text{Stop Loss} = P_{\text{current}} + D_{\text{SL}}$$
-$$\text{Take Profit} = P_{\text{current}} - D_{\text{TP}}$$
+$$\text{Target Entry} = P_{\text{current}}, \quad \text{Stop Loss} = P_{\text{current}} + D_{\text{SL}}, \quad \text{Take Profit} = P_{\text{current}} - D_{\text{TP}}$$
 
 ### 4.2 Capital Allocation & Position Sizing
 Given total account equity $E$ and maximum single-trade account risk budget $\rho = 1.0\%$:
@@ -117,7 +115,13 @@ graph TD
 
 ---
 
-## 6. Auditability & Reflection Loop
+## 6. Model Context Protocol (MCP) Server Architecture
 
-1. **Pre-Trade Capture**: Every committee vote, Devil's Advocate objection, risk calculation, and Alpaca order ID is bundled into a cryptographic-style JSON Trade Passport.
-2. **Post-Trade Attribution**: When a trade closes (stop-loss hit or take-profit reached), the `AuditAgent` queries market outcomes and logs a 3-sentence executive reflection validating whether the Devil's Advocate's warnings materialized.
+```mermaid
+graph LR
+    Client[Claude Desktop / Cursor / AI Agent] -- JSON-RPC stdio --> Server[ArgusMCPServer]
+    Server --> Committee[Committee Orchestrator]
+    Server --> Alpaca[Alpaca Client]
+    Server --> KillSwitch[Emergency Kill Switch]
+    Server --> Audit[Audit Agent]
+```

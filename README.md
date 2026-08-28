@@ -192,7 +192,7 @@ Run the full unit and integration test suite:
 python -m pytest
 ```
 
-All 41 tests cover:
+All 49 tests cover:
 - Multi-agent scoring and consensus synthesis
 - Devil's Advocate adversarial veto and downsize thresholds
 - Risk Commander ATR bracket calculations

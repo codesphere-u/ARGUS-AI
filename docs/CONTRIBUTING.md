@@ -1,6 +1,6 @@
-# 🤝 ARGUS AI: Team Contribution & Development Guide
+# 🤝 ARGUS AI 2.0: Team Contribution & Development Guide
 
-Welcome to the **ARGUS AI** development team! This guide provides everything needed to contribute new agents, integrate additional market data streams, extend Alpaca broker features, and maintain code quality.
+Welcome to the **ARGUS AI 2.0** development team! This guide provides everything needed to contribute new agents, integrate data streams, extend Alpaca broker features, and build MCP tools.
 
 ---
 
@@ -13,7 +13,7 @@ Welcome to the **ARGUS AI** development team! This guide provides everything nee
 
 ### 2. Local Environment
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/codesphereug/ARGUS-AI.git
 cd "ria forex bot"
 
@@ -21,17 +21,17 @@ cd "ria forex bot"
 python -m venv .venv
 
 # Activate environment
-# On Windows PowerShell:
+# Windows PowerShell:
 .venv\Scripts\Activate.ps1
-# On macOS/Linux:
+# macOS/Linux:
 source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 ```
 
-### 3. Running Tests
-Ensure all unit and integration tests pass before making changes:
+### 3. Running Automated Tests
+Run the 49-test automated suite before opening pull requests:
 ```bash
 python -m pytest
 ```
@@ -40,89 +40,59 @@ python -m pytest
 
 ## 🏗️ How to Add a New Agent to the Committee
 
-All agents inherit from `BaseAgent` located at `argus_ai/agents/base_agent.py`.
+All committee agents inherit from `BaseAgent` located at `argus_ai/agents/base_agent.py`.
 
 ### Step 1: Create the Agent File
-Create a new file in `argus_ai/agents/`, e.g., `options_agent.py`:
+Create a new file in `argus_ai/agents/`, e.g., `crypto_onchain_agent.py`:
 
 ```python
 from typing import List, Dict, Any
 from argus_ai.agents.base_agent import BaseAgent
 from argus_ai.core.models import AgentVote, MarketContext
 
-class OptionsFlowAgent(BaseAgent):
+class CryptoOnChainAgent(BaseAgent):
     """
-    Options Flow Agent: Evaluates institutional unusual options activity (UOA),
-    put/call ratios, and dealer gamma positioning.
+    Crypto On-Chain Agent: Evaluates whale wallet movements, exchange net inflows/outflows,
+    and funding rates.
     """
 
     def __init__(self):
-        super().__init__("Options Flow Agent")
+        super().__init__("Crypto On-Chain Agent")
 
     def analyze(self, ctx: MarketContext) -> AgentVote:
-        # 1. Prepare LLM Prompts
-        system_prompt = (
-            "You are the Lead Derivatives & Options Flow Analyst for ARGUS AI. "
-            "Evaluate options sentiment. Output JSON with fields: "
-            "recommendation ('BUY', 'SELL', 'HOLD'), confidence (0.0 to 1.0), "
-            "score (-100 to 100), key_arguments (list), concerns_raised (list)."
-        )
-        user_prompt = f"Ticker: {ctx.ticker}\nCurrent Price: ${ctx.current_price:.2f}"
-
-        # 2. Query LLM with fallback
-        llm_res = self.query_llm_json(system_prompt, user_prompt)
-        if llm_res:
-            return AgentVote(
-                agent_name=self.name,
-                recommendation=llm_res.get("recommendation", "HOLD"),
-                confidence=float(llm_res.get("confidence", 0.7)),
-                score=float(llm_res.get("score", 0.0)),
-                key_arguments=llm_res.get("key_arguments", []),
-                concerns_raised=llm_res.get("concerns_raised", [])
-            )
-
-        # 3. Deterministic Heuristic Fallback
+        # LLM reasoning with deterministic heuristic fallback
         return AgentVote(
             agent_name=self.name,
-            recommendation="BUY" if ctx.rsi_14 < 60 else "HOLD",
-            confidence=0.75,
-            score=40.0 if ctx.rsi_14 < 60 else 0.0,
-            key_arguments=["Options call flow accumulation detected"],
+            recommendation="BUY",
+            confidence=0.82,
+            score=45.0,
+            key_arguments=["Whale accumulation active; exchange reserves declining"],
             concerns_raised=[]
         )
 ```
 
-### Step 2: Register in `CommitteeOrchestrator`
-Edit `argus_ai/committee.py`:
-1. Import your agent:
-   ```python
-   from argus_ai.agents.options_agent import OptionsFlowAgent
-   ```
-2. Initialize it in `__init__`:
-   ```python
-   self.options = OptionsFlowAgent()
-   ```
-3. Include its vote in `evaluate_opportunity` and update composite weights.
+### Step 2: Register in `CommitteeOrchestrator` & `AdaptiveWeightManager`
+1. Edit `argus_ai/committee.py` to instantiate and call your agent.
+2. Edit `argus_ai/core/adaptive_weights.py` to include your agent in the default Bayesian weighting dictionary.
 
 ### Step 3: Write Unit Tests
-Add tests in `tests/test_argus_committee.py` to verify your agent's scoring and heuristic fallback.
+Add tests in `tests/test_argus_v2.py` to verify your agent's scoring, voting, and fallback behavior.
 
 ---
 
-## 🦙 Extending Alpaca Broker Capabilities
+## 🦙 Testing MCP Server & Tools
 
-The Alpaca integration is encapsulated in `argus_ai/core/alpaca_client.py`.
+ARGUS AI implements an official Model Context Protocol (MCP) server in `argus_ai/mcp_server.py`.
 
-### Available Methods:
-- `get_account_summary()`: Retrieves live equity, cash, buying power, and portfolio value.
-- `place_bracket_order(symbol, qty, side, take_profit_price, stop_loss_price)`: Submits institutional bracket orders.
-- `cancel_all_orders()`: Emergency kill-switch trigger to purge all open working orders.
-- `close_all_positions()`: Emergency liquidation trigger.
-- `get_historical_bars(symbol, timeframe, limit)`: Fetches OHLCV candlestick data.
+To test MCP tools locally:
+```bash
+python -m argus_ai.cli mcp
+```
+See **[docs/MCP_INTEGRATION_GUIDE.md](MCP_INTEGRATION_GUIDE.md)** for configuration instructions with Claude Desktop and Cursor.
 
 ---
 
-## 🎨 Modifying the Web Dashboard
+## 🎨 Web Dashboard Development
 
 The web dashboard is located in `argus_dashboard/`:
 - `index.html`: Layout structure, accessibility tags, and modal dialogs.
@@ -136,10 +106,10 @@ python -m http.server 3000 --directory "argus_dashboard"
 
 ---
 
-## 📋 Code Standards & PR Checklist
+## 📋 PR Submission Checklist
 
-- [ ] All new functions and classes have descriptive docstrings and type hints (`typing`).
-- [ ] No hardcoded API keys or secrets in source code (use `.env`).
-- [ ] All 41+ automated tests pass (`python -m pytest`).
+- [ ] All new functions and classes have type annotations and docstrings.
+- [ ] No hardcoded secrets or API keys in source code (use `.env`).
+- [ ] All 49+ automated tests pass (`python -m pytest`).
 - [ ] Code is formatted cleanly and adheres to PEP 8 standards.
-- [ ] Any new risk parameters are deterministic and documented in `docs/ARCHITECTURE.md`.
+- [ ] New risk parameters are documented in `docs/ARCHITECTURE.md`.
