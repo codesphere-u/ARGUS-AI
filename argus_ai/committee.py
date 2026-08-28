@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import pandas as pd
 
 from argus_ai.core.models import (
@@ -8,25 +8,30 @@ from argus_ai.core.models import (
 from argus_ai.agents.quant_agent import QuantAgent
 from argus_ai.agents.news_agent import NewsAgent
 from argus_ai.agents.macro_agent import MacroAgent
+from argus_ai.agents.options_agent import OptionsFlowAgent
 from argus_ai.agents.devils_advocate import DevilsAdvocateAgent
 from argus_ai.agents.risk_commander import RiskCommander
+from argus_ai.core.adaptive_weights import AdaptiveWeightManager
 
 logger = logging.getLogger("argus.committee")
 
 
 class CommitteeOrchestrator:
     """
-    Investment Committee Orchestrator:
-    Coordinates multi-agent debate, evaluates the Devil's Advocate adversarial challenge,
-    synthesizes consensus, and generates institutional Trade Passports.
+    Investment Committee Orchestrator (ARGUS 2.0):
+    Coordinates multi-agent debate, integrates Options Flow & Derivatives signals,
+    applies dynamic Bayesian adaptive weighting, evaluates Devil's Advocate adversarial
+    stress-testing, synthesizes consensus, and generates institutional Trade Passports.
     """
 
-    def __init__(self):
+    def __init__(self, adaptive_weight_mgr: Optional[AdaptiveWeightManager] = None):
         self.quant = QuantAgent()
         self.news = NewsAgent()
         self.macro = MacroAgent()
+        self.options = OptionsFlowAgent()
         self.devils_advocate = DevilsAdvocateAgent()
         self.risk_commander = RiskCommander()
+        self.weight_mgr = adaptive_weight_mgr or AdaptiveWeightManager()
 
     def evaluate_opportunity(
         self,
@@ -40,31 +45,47 @@ class CommitteeOrchestrator:
         quant_vote = self.quant.analyze(ctx, bars_df)
         news_vote = self.news.analyze(ctx)
         macro_vote = self.macro.analyze(ctx)
+        options_vote = self.options.analyze(ctx)
 
-        agent_votes = [quant_vote, news_vote, macro_vote]
+        agent_votes = [quant_vote, news_vote, macro_vote, options_vote]
 
-        # 2. Weighted Score Synthesis (Quant 40%, News 30%, Macro 30%)
+        # 2. Retrieve Dynamic Bayesian Weights
+        w_quant = self.weight_mgr.get_weight("Quant Agent")
+        w_news = self.weight_mgr.get_weight("News & Sentiment Agent")
+        w_macro = self.weight_mgr.get_weight("Macro & Sector Agent")
+        w_options = self.weight_mgr.get_weight("Options Flow Agent")
+
+        # Normalize weights
+        total_w = w_quant + w_news + w_macro + w_options
+        w_quant /= total_w
+        w_news /= total_w
+        w_macro /= total_w
+        w_options /= total_w
+
+        # 3. Dynamic Weighted Score Synthesis
         composite_score = (
-            quant_vote.score * 0.40 +
-            news_vote.score * 0.30 +
-            macro_vote.score * 0.30
+            quant_vote.score * w_quant +
+            news_vote.score * w_news +
+            macro_vote.score * w_macro +
+            options_vote.score * w_options
         )
         avg_confidence = (
-            quant_vote.confidence * 0.40 +
-            news_vote.confidence * 0.30 +
-            macro_vote.confidence * 0.30
+            quant_vote.confidence * w_quant +
+            news_vote.confidence * w_news +
+            macro_vote.confidence * w_macro +
+            options_vote.confidence * w_options
         )
 
         proposed_direction = "LONG" if composite_score >= 0 else "SHORT"
 
-        # 3. Adversarial Stress-Test by Devil's Advocate
+        # 4. Adversarial Stress-Test by Devil's Advocate
         da_review = self.devils_advocate.stress_test(
             ctx=ctx,
             proposed_direction=proposed_direction,
             votes=agent_votes
         )
 
-        # 4. Consensus & Veto Determination
+        # 5. Consensus & Veto Determination
         status = "HOLD"
         downsize_factor = 1.0
         primary_cat = quant_vote.key_arguments[0] if quant_vote.key_arguments else "Technical alignment"
@@ -109,7 +130,7 @@ class CommitteeOrchestrator:
             unanimous=unanimous
         )
 
-        # 5. Risk Commander Position Sizing & Bracket Parameters
+        # 6. Risk Commander Position Sizing & Bracket Parameters
         risk_params = self.risk_commander.calculate_trade_parameters(
             ctx=ctx,
             direction=proposed_direction,
@@ -117,7 +138,7 @@ class CommitteeOrchestrator:
             account_equity=account_equity
         )
 
-        # 6. Assemble Immutable Trade Passport
+        # 7. Assemble Immutable Trade Passport
         passport = TradePassport(
             ticker=ctx.ticker,
             asset_class="CRYPTO" if ("BTC" in ctx.ticker or "ETH" in ctx.ticker) else "US_EQUITY",

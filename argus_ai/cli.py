@@ -1,6 +1,7 @@
 import argparse
 import sys
 import io
+import asyncio
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -8,7 +9,9 @@ from rich.panel import Panel
 from argus_ai.scanner import OpportunityScanner
 from argus_ai.core.alpaca_client import AlpacaClient
 from argus_ai.core.kill_switch import EmergencyKillSwitch
-from argus_ai.core.passport import TradePassportFormatter
+from argus_ai.core.adaptive_weights import AdaptiveWeightManager
+from argus_ai.core.streamer import MarketStreamListener
+from argus_ai.mcp_server import ArgusMCPServer
 from argus_ai.config.settings import CONFIG
 
 
@@ -101,8 +104,8 @@ def display_passport_rich(passport):
         f"${passport.target_entry:.2f}",
         f"${passport.stop_loss:.2f}",
         f"${passport.take_profit:.2f}",
-        str(passport.shares_or_contracts),
-        f"${passport.position_size_usd:,.2f}",
+        f"{passport.shares_or_contracts:.1f}",
+        f"${passport.position_size_usd:.2f}",
         f"{passport.account_risk_pct:.2f}%"
     )
     console.print(risk_tbl)
@@ -112,7 +115,7 @@ def display_passport_rich(passport):
 def main():
     print_banner()
     parser = argparse.ArgumentParser(description="ARGUS AI Autonomous Trading Desk CLI")
-    parser.add_argument("command", choices=["scan", "single", "adversarial-demo", "kill-switch"], default="scan", nargs="?")
+    parser.add_argument("command", choices=["scan", "single", "adversarial-demo", "kill-switch", "mcp", "stream", "weights"], nargs="?", default="scan")
     parser.add_argument("--ticker", type=str, default="NVDA", help="Ticker to evaluate for 'single' mode")
     parser.add_argument("--regime", type=str, default="BULLISH", help="Market regime (BULLISH, BEARISH, CHOPPY)")
     parser.add_argument("--vix", type=float, default=17.5, help="Simulated VIX index level")
@@ -162,6 +165,27 @@ def main():
         else:
             status = kill_switch.inspect_portfolio_health()
             console.print(f"Kill Switch Status: {'ACTIVE (FROZEN)' if status.is_active else 'STANDBY (NORMAL)'}")
+
+    elif args.command == "mcp":
+        console.print("[bold cyan]Starting ARGUS AI Model Context Protocol (MCP) Server on stdio...[/bold cyan]")
+        server = ArgusMCPServer()
+        server.run_stdio()
+
+    elif args.command == "stream":
+        console.print("[bold cyan]Starting 24/7 WebSocket Real-Time Stream Listener...[/bold cyan]")
+        listener = MarketStreamListener(on_trade_passport_callback=display_passport_rich)
+        try:
+            asyncio.run(listener.start_streaming_loop(max_ticks=5))
+        except KeyboardInterrupt:
+            listener.stop()
+
+    elif args.command == "weights":
+        mgr = AdaptiveWeightManager()
+        console.print(Panel(
+            "\n".join([f"• [cyan]{agent}:[/cyan] [bold green]{w*100:.1f}%[/bold green]" for agent, w in mgr.weights.items()]),
+            title="🧠 Adaptive Bayesian Committee Weights (Online Learning)",
+            border_style="magenta"
+        ))
 
 
 if __name__ == "__main__":

@@ -305,6 +305,16 @@ function runCommitteeDeliberation(ticker, trend, price, rsi, vix) {
       thesis: `Broader index beta is elevated with VIX at ${vix}. Caution recommended for high-beta longs.`,
       bullets: ["Tech sector relative strength positive", "Macro liquidity tightening"]
     };
+    optionsVote = {
+      name: "Options Flow Agent",
+      role: "Derivatives, Gamma Exposure & Put/Call Skew",
+      vote: "VETO (SKEW)",
+      voteClass: "vote-veto",
+      score: "-40.0",
+      confidence: "80%",
+      thesis: `Heavy out-of-the-money put buying and negative dealer gamma pin overhead.`,
+      bullets: ["Put/Call ratio skewed to 1.35", "Dealer hedging creates heavy resistance band"]
+    };
     daReview = {
       name: "Devil's Advocate (Adversarial Dissent)",
       role: "Trap Detection, Stress-Testing & VETO Power",
@@ -352,6 +362,16 @@ function runCommitteeDeliberation(ticker, trend, price, rsi, vix) {
       confidence: "60%",
       thesis: `Sector ETF showing steady accumulation.`,
       bullets: ["Inflows into consumer discretionary", "Yield curve stable"]
+    };
+    optionsVote = {
+      name: "Options Flow Agent",
+      role: "Derivatives, Gamma Exposure & Put/Call Skew",
+      vote: "HOLD",
+      voteClass: "vote-hold",
+      score: "0.0",
+      confidence: "60%",
+      thesis: `Balanced straddle pricing ahead of weekly expiry. Put/Call ratio neutral at 0.95.`,
+      bullets: ["Moderate implied volatility", "No large institutional block sweeps"]
     };
     daReview = {
       name: "Devil's Advocate (Adversarial Dissent)",
@@ -401,6 +421,16 @@ function runCommitteeDeliberation(ticker, trend, price, rsi, vix) {
       thesis: `Macro regime is constructive. Low correlation with broad market volatility.`,
       bullets: ["VIX at peaceful levels (" + vix + ")", "Institutional allocation accelerating"]
     };
+    optionsVote = {
+      name: "Options Flow Agent",
+      role: "Derivatives, Gamma Exposure & Put/Call Skew",
+      vote: "BUY",
+      voteClass: "vote-buy",
+      score: "+60.0",
+      confidence: "82%",
+      thesis: `Bullish institutional call flow sweep detected. Low Put/Call ratio (0.65).`,
+      bullets: ["Positive dealer gamma pin providing price floor", "Call volume 2.4x above 30-day average"]
+    };
     daReview = {
       name: "Devil's Advocate (Adversarial Dissent)",
       role: "Trap Detection, Stress-Testing & VETO Power",
@@ -420,7 +450,7 @@ function runCommitteeDeliberation(ticker, trend, price, rsi, vix) {
   }
 
   // Sequence Agent Card Renderings
-  const sequence = [quantVote, newsVote, macroVote, daReview];
+  const sequence = [quantVote, newsVote, macroVote, optionsVote, daReview];
   let delay = 0;
 
   sequence.forEach((agent, index) => {

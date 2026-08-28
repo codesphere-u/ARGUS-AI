@@ -5,7 +5,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Alpaca API](https://img.shields.io/badge/Broker-Alpaca%20Trading%20API-yellow.svg)](https://alpaca.markets/)
-[![Tests: 41 Passed](https://img.shields.io/badge/pytest-41%20passed-brightgreen.svg)](tests/)
+[![Tests: 49 Passed](https://img.shields.io/badge/pytest-49%20passed-brightgreen.svg)](tests/)
 [![Hackathon: Lablab.ai](https://img.shields.io/badge/Hackathon-Alpaca%20AI%20Agents-purple.svg)](https://lablab.ai/ai-hackathons/alpaca-ai-trading-agents-hackathon)
 
 ---

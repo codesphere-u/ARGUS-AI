@@ -136,7 +136,7 @@ def test_committee_orchestrator_full_flow():
     assert passport.stop_loss < passport.current_price
     assert passport.take_profit > passport.current_price
     assert passport.risk_reward_ratio >= 1.5
-    assert len(passport.agent_votes) == 3
+    assert len(passport.agent_votes) == 4
 
 
 def test_risk_commander_bracket_and_sizing():
