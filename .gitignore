@@ -6,6 +6,9 @@
 
 # Runtime data / artifacts
 data/
+argus_ai/data/passports/*.json
+argus_ai/data/*.json
+uv.lock
 models/*.zip
 models/*.pkl
 *.db

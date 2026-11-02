@@ -6,12 +6,19 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
+from pathlib import Path
 from argus_ai.scanner import OpportunityScanner
 from argus_ai.core.alpaca_client import AlpacaClient
 from argus_ai.core.kill_switch import EmergencyKillSwitch
 from argus_ai.core.adaptive_weights import AdaptiveWeightManager
 from argus_ai.core.streamer import MarketStreamListener
 from argus_ai.mcp_server import ArgusMCPServer
+from argus_ai.backtest import (
+    AdversarialBacktestEngine,
+    generate_multi_regime_dataset,
+    replay_passport,
+    compute_passport_digest,
+)
 from argus_ai.config.settings import CONFIG
 
 
@@ -112,17 +119,79 @@ def display_passport_rich(passport):
     console.print("\n" + "="*80 + "\n")
 
 
-def main():
+def display_backtest_rich(report):
+    a = report.argus_committee
+    b = report.naive_baseline
+    c = report.cost_model
+
+    tbl = Table(
+        title=f"Walk-Forward Counterfactual Backtest: {report.ticker} ({report.total_bars} Bars, {report.evaluated_opportunities} Deliberations)",
+        header_style="bold cyan",
+    )
+    tbl.add_column("Institutional Metric", style="bold white")
+    tbl.add_column("ARGUS 7-Agent Committee", justify="right", style="bold green")
+    tbl.add_column("Naive Quant Baseline", justify="right", style="yellow")
+    tbl.add_column("ARGUS Structural Edge", justify="right", style="bold magenta")
+
+    tbl.add_row("Ending Equity", f"${a.ending_equity:,.2f}", f"${b.ending_equity:,.2f}", f"${a.ending_equity - b.ending_equity:+,.2f}")
+    tbl.add_row("Total Net Return (%)", f"{a.total_return_pct:+.2f}%", f"{b.total_return_pct:+.2f}%", f"{report.return_outperformance_pct:+.2f}%")
+    tbl.add_row("Max Drawdown (%)", f"{a.max_drawdown_pct:.2f}%", f"{b.max_drawdown_pct:.2f}%", f"-{report.drawdown_reduction_pct:.2f}% DD")
+    tbl.add_row("Sharpe Ratio (Ann.)", f"{a.sharpe_ratio:.2f}", f"{b.sharpe_ratio:.2f}", f"{report.sharpe_improvement:+.2f}")
+    tbl.add_row("Sortino Ratio (Ann.)", f"{a.sortino_ratio:.2f}", f"{b.sortino_ratio:.2f}", f"{a.sortino_ratio - b.sortino_ratio:+.2f}")
+    tbl.add_row("Win Rate (%)", f"{a.win_rate_pct:.1f}%", f"{b.win_rate_pct:.1f}%", f"{a.win_rate_pct - b.win_rate_pct:+.1f}%")
+    tbl.add_row("Profit Factor", f"{a.profit_factor:.2f}", f"{b.profit_factor:.2f}", f"{a.profit_factor - b.profit_factor:+.2f}")
+    tbl.add_row("Executed Trades", f"{a.total_trades}", f"{b.total_trades}", f"{a.total_trades - b.total_trades:+d}")
+    tbl.add_row("Transaction Costs", f"${a.total_costs_usd:,.2f}", f"${b.total_costs_usd:,.2f}", f"${a.total_costs_usd - b.total_costs_usd:+,.2f}")
+    console.print(tbl)
+
+    console.print(Panel(
+        f"[bold white]Devil's Advocate Veto Count:[/bold white] [bold magenta]{a.vetoed_trades_count}[/bold magenta] | "
+        f"[bold white]50% Downsized Count:[/bold white] [bold yellow]{a.downsized_trades_count}[/bold yellow] | "
+        f"[bold white]Counterfactual Losses Saved:[/bold white] [bold green]${a.veto_saved_loss_usd:,.2f}[/bold green] | "
+        f"[bold white]Veto Precision:[/bold white] [bold cyan]{a.veto_accuracy_pct:.1f}%[/bold cyan]\n"
+        f"[dim]Cost Model: Spread {c.spread_bps:.1f} bps | Commission {c.commission_bps:.1f} bps/side | Slippage {c.slippage_atr_fraction*100:.1f}% ATR | Mean Disagreement Entropy: {a.avg_disagreement_entropy:.4f}[/dim]",
+        title="Adversarial Dissent & Veto Attribution",
+        border_style="magenta",
+    ))
+
+
+def display_replay_rich(verification):
+    border = "green" if verification.is_valid else "red"
+    status_str = "[bold green]VALIDATED (ALL INVARIANTS PASSED)[/bold green]" if verification.is_valid else "[bold red]INVARIANT VIOLATION DETECTED[/bold red]"
+    violations_str = "\n".join([f"  * [red]{v}[/red]" for v in verification.violations]) if verification.violations else "  * [green]None[/green]"
+    console.print(Panel(
+        f"[bold white]Passport ID:[/bold white] [cyan]{verification.passport_id}[/cyan] | "
+        f"[bold white]Ticker:[/bold white] {verification.ticker} | "
+        f"[bold white]Consensus:[/bold white] {verification.consensus_status}\n"
+        f"[bold white]Verification Status:[/bold white] {status_str}\n"
+        f"[bold white]SHA-256 Digest:[/bold white] [dim]{verification.computed_digest}[/dim]\n"
+        f"[bold white]Disagreement Entropy:[/bold white] {verification.disagreement_entropy:.4f}\n"
+        f"[bold white]Invariants Checked:[/bold white] {', '.join(verification.invariants_checked)}\n"
+        f"[bold white]Violations:[/bold white]\n{violations_str}",
+        title="Trade Passport Deterministic Replay & Audit Verification",
+        border_style=border,
+    ))
+
+
+def main(argv=None):
     print_banner()
     parser = argparse.ArgumentParser(description="ARGUS AI Autonomous Trading Desk CLI")
-    parser.add_argument("command", choices=["scan", "single", "adversarial-demo", "kill-switch", "mcp", "stream", "weights"], nargs="?", default="scan")
-    parser.add_argument("--ticker", type=str, default="NVDA", help="Ticker to evaluate for 'single' mode")
+    parser.add_argument(
+        "command",
+        choices=["scan", "single", "adversarial-demo", "kill-switch", "mcp", "stream", "weights", "backtest", "replay"],
+        nargs="?",
+        default="scan",
+    )
+    parser.add_argument("--ticker", type=str, default="NVDA", help="Ticker to evaluate for 'single' or 'backtest' mode")
     parser.add_argument("--regime", type=str, default="BULLISH", help="Market regime (BULLISH, BEARISH, CHOPPY)")
     parser.add_argument("--vix", type=float, default=17.5, help="Simulated VIX index level")
+    parser.add_argument("--bars", type=int, default=240, help="Number of historical bars for 'backtest' mode")
+    parser.add_argument("--report-out", type=str, default="", help="Optional markdown path to write backtest report")
+    parser.add_argument("--passport", type=str, default="", help="Path to TradePassport JSON file for 'replay' mode")
     parser.add_argument("--trigger-kill", action="store_true", help="Trigger manual kill switch")
     parser.add_argument("--reset-kill", action="store_true", help="Reset manual kill switch")
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     alpaca = AlpacaClient()
     kill_switch = EmergencyKillSwitch(alpaca)
@@ -186,6 +255,30 @@ def main():
             title="🧠 Adaptive Bayesian Committee Weights (Online Learning)",
             border_style="magenta"
         ))
+
+    elif args.command == "backtest":
+        console.print(
+            f"[bold cyan]Running Deterministic Multi-Regime Walk-Forward Backtest on {args.ticker} ({args.bars} bars)...[/bold cyan]\n"
+        )
+        df = generate_multi_regime_dataset(ticker=args.ticker, n_bars=args.bars, seed=42)
+        engine = AdversarialBacktestEngine()
+        report = engine.run_backtest(df, ticker=args.ticker)
+        display_backtest_rich(report)
+        if args.report_out:
+            out_path = Path(args.report_out)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(AdversarialBacktestEngine.to_markdown_report(report), encoding="utf-8")
+            console.print(f"[bold green]Backtest verification report written to {out_path}[/bold green]")
+
+    elif args.command == "replay":
+        if args.passport:
+            passport_source = Path(args.passport)
+            verification = replay_passport(passport_source)
+        else:
+            passport = scanner.scan_asset(args.ticker, custom_regime=args.regime, custom_vix=args.vix)
+            digest = compute_passport_digest(passport)
+            verification = replay_passport(passport.model_dump_json(), expected_digest=digest)
+        display_replay_rich(verification)
 
 
 if __name__ == "__main__":

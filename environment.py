@@ -5,10 +5,58 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-import gymnasium as gym
 import numpy as np
 import pandas as pd
-from gymnasium import spaces
+
+try:
+    import gymnasium as gym
+    from gymnasium import spaces
+except ImportError:
+    class _FallbackEnv:
+        metadata: dict[str, Any] = {}
+
+        def __init__(self) -> None:
+            pass
+
+        def reset(
+            self,
+            *,
+            seed: int | None = None,
+            options: dict[str, Any] | None = None,
+        ) -> None:
+            if seed is not None:
+                np.random.seed(seed)
+
+    class _FallbackBox:
+        def __init__(
+            self,
+            low: float,
+            high: float,
+            shape: tuple[int, ...],
+            dtype: Any = np.float32,
+        ) -> None:
+            self.low = low
+            self.high = high
+            self.shape = shape
+            self.dtype = dtype
+
+    class _FallbackDiscrete:
+        def __init__(self, n: int) -> None:
+            self.n = int(n)
+
+        def contains(self, x: int) -> bool:
+            return isinstance(x, (int, np.integer)) and 0 <= int(x) < self.n
+
+    class _FallbackSpaces:
+        Box = _FallbackBox
+        Discrete = _FallbackDiscrete
+
+    class _FallbackGym:
+        Env = _FallbackEnv
+        spaces = _FallbackSpaces
+
+    gym = _FallbackGym()  # type: ignore[assignment]
+    spaces = _FallbackSpaces()  # type: ignore[assignment]
 
 from config import RISK, RiskConfig
 from macro_filter import MACRO_FEATURE_KEYS, MacroFilter
