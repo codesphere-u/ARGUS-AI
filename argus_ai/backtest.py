@@ -9,6 +9,7 @@ import datetime
 import hashlib
 import json
 import math
+import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Sequence, Union
 from unittest.mock import patch
@@ -590,6 +591,59 @@ class AdversarialBacktestEngine:
             round(net_pnl, 2),
             exit_reason,
         )
+
+    @staticmethod
+    def export_veto_chart(report: BacktestComparisonReport,
+                          output_filepath: str = "veto_attribution_chart.svg") -> None:
+        """
+        Generates an SVG/HTML chart exporting the equity curve and highlighting
+        exact timestamps where the Devil's Advocate intervened.
+        """
+        records = report.trade_records
+        if not records:
+            print("No trade records found to plot.")
+            return
+
+        # Convert records to DataFrame for easier plotting
+        df = pd.DataFrame([r.model_dump() for r in records])
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df = df.sort_values('timestamp')
+
+        # Filter executed trades to build the equity curve
+        executed_df = df[df['executed'] == True].copy()
+        executed_df['cumulative_pnl'] = executed_df['net_pnl_usd'].cumsum()
+        executed_df['equity'] = report.argus_committee.initial_equity + executed_df['cumulative_pnl']
+
+        # Filter vetoed trades for markers
+        veto_df = df[df['exit_reason'] == 'VETOED_COUNTERFACTUAL']
+
+        plt.figure(figsize=(14, 7))
+
+        # Plot the equity curve
+        plt.plot(executed_df['timestamp'], executed_df['equity'],
+                 label='ARGUS Equity Curve', color='blue', linewidth=2)
+
+        # Plot vertical lines for Devil's Advocate Vetoes
+        for i, row in veto_df.iterrows():
+            label = "Devil's Advocate Veto" if i == veto_df.index[0] else ""
+            plt.axvline(x=row['timestamp'], color='red', linestyle='--', alpha=0.6, label=label)
+
+        plt.title(f"Walk-Forward Regime Attribution & Devil's Advocate Vetoes ({report.ticker})", fontsize=14)
+        plt.xlabel("Timestamp", fontsize=12)
+        plt.ylabel("Account Equity (USD)", fontsize=12)
+
+        # Deduplicate legend labels
+        handles, labels = plt.gca().get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        plt.legend(by_label.values(), by_label.keys(), loc='best')
+
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+
+        # Save as SVG or HTML based on extension
+        plt.savefig(output_filepath, format=output_filepath.split('.')[-1])
+        plt.close()
+        print(f"Chart successfully exported to {output_filepath}")
 
     @staticmethod
     def _compute_summary_metrics(
