@@ -33,7 +33,7 @@ dependencies = [
 [project.optional-dependencies]
 llm = [
     "google-genai>=2.14.0",
-    "aiohttp>=3.9.0",
+    "aiohttp>=3.14.5",
     "websockets>=12.0",
 ]
 rl = [
