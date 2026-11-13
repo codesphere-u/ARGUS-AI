@@ -234,3 +234,21 @@ def test_cli_backtest_and_replay_commands(tmp_path: Path):
     passport_path = tmp_path / "sample_passport.json"
     passport_path.write_text(_sample_passport().model_dump_json(), encoding="utf-8")
     cli_main(["replay", "--passport", str(passport_path)])
+
+
+def test_export_veto_chart_requires_matplotlib_with_helpful_error(monkeypatch, tmp_path: Path):
+    import builtins
+    real_import = builtins.__import__
+
+    def _block_matplotlib(name, *args, **kwargs):
+        if name.startswith("matplotlib"):
+            raise ImportError("No module named 'matplotlib'")
+        return real_import(name, *args, **kwargs)
+
+    df = generate_multi_regime_dataset("NVDA", n_bars=120, seed=42)
+    comparison = AdversarialBacktestEngine().run_backtest(df, ticker="NVDA")
+    monkeypatch.setattr(builtins, "__import__", _block_matplotlib)
+
+    import pytest
+    with pytest.raises(ImportError, match=r"argus-ai\[rl\]"):
+        AdversarialBacktestEngine.export_veto_chart(comparison, str(tmp_path / "chart.svg"))

@@ -9,7 +9,6 @@ import datetime
 import hashlib
 import json
 import math
-import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Sequence, Union
 from unittest.mock import patch
@@ -616,6 +615,13 @@ class AdversarialBacktestEngine:
 
         # Filter vetoed trades for markers
         veto_df = df[df['exit_reason'] == 'VETOED_COUNTERFACTUAL']
+
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError(
+                "matplotlib is required for export_veto_chart(); install with `pip install matplotlib` or `pip install 'argus-ai[rl]'`."
+            ) from exc
 
         plt.figure(figsize=(14, 7))
 
