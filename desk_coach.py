@@ -9,9 +9,9 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Any
 
-from config import BRAND_NAME, GEMINI, RISK
+from config import BRAND_NAME, RISK
 from gemini_advisor import GeminiAdvisor, default_advisor
-from telegram_format import copy_line, fmt_money, fmt_price, sanitize_telegram_html
+from telegram_format import copy_line, fmt_money, sanitize_telegram_html
 
 logger = logging.getLogger(__name__)
 

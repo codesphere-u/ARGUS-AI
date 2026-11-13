@@ -1,6 +1,10 @@
-from typing import List
+import logging
+from typing import Literal
+
 from argus_ai.agents.base_agent import BaseAgent
-from argus_ai.core.models import DevilsAdvocateReview, AgentVote, MarketContext
+from argus_ai.core.models import AgentVote, DevilsAdvocateReview, MarketContext
+
+logger = logging.getLogger("argus.devils_advocate")
 
 
 class DevilsAdvocateAgent(BaseAgent):
@@ -10,14 +14,14 @@ class DevilsAdvocateAgent(BaseAgent):
     It identifies bear/bull traps, crowded trades, liquidity grabs, and failure points.
     """
 
-    def __init__(self):
-        super().__init__("Devil's Advocate")
+    def __init__(self, use_llm: bool = True) -> None:
+        super().__init__("Devil's Advocate", use_llm=use_llm)
 
     def stress_test(
         self,
         ctx: MarketContext,
         proposed_direction: str,
-        votes: List[AgentVote]
+        votes: list[AgentVote],
     ) -> DevilsAdvocateReview:
         # Collate affirmative arguments from other agents
         support_points = []
@@ -40,8 +44,8 @@ class DevilsAdvocateAgent(BaseAgent):
             f"Current Price: ${ctx.current_price:.2f}\n"
             f"Proposed Direction: {proposed_direction}\n"
             f"RSI: {ctx.rsi_14:.1f}, VIX: {ctx.vix_level:.1f}\n"
-            f"Committee Theses in Favor:\n" + "\n".join([f"- {p}" for p in support_points]) + "\n"
-            f"Preliminary Concerns:\n" + "\n".join([f"- {c}" for c in concerns_pool])
+            "Committee Theses in Favor:\n" + "\n".join([f"- {p}" for p in support_points]) + "\n"
+            "Preliminary Concerns:\n" + "\n".join([f"- {c}" for c in concerns_pool])
         )
 
         llm_res = self.query_llm_json(system_prompt, user_prompt)
@@ -53,16 +57,16 @@ class DevilsAdvocateAgent(BaseAgent):
                     disqualification_risk_pct=float(llm_res.get("disqualification_risk_pct", 30.0)),
                     veto_recommended=bool(llm_res.get("veto_recommended", False)),
                     recommended_contingency=llm_res.get("recommended_contingency", "Proceed with standard stops."),
-                    severity_level=llm_res.get("severity_level", "LOW")
+                    severity_level=llm_res.get("severity_level", "LOW"),
                 )
-            except Exception:
-                pass
+            except (TypeError, KeyError, ValueError) as exc:
+                logger.debug("[%s] Invalid LLM JSON payload (%s); using heuristic.", self.name, exc)
 
         # Deterministic Adversarial Heuristic Engine
-        traps: List[str] = []
+        traps: list[str] = []
         risk_pct = 20.0
-        thesis_points: List[str] = []
-        severity = "LOW"
+        thesis_points: list[str] = []
+        severity: Literal["LOW", "MODERATE", "SEVERE", "CRITICAL"] = "LOW"
         veto = False
 
         if proposed_direction.upper() == "LONG":

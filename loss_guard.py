@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -53,8 +53,7 @@ class LossGuard:
         self.session_peak_equity = max(equity, self.session_peak_equity or equity)
 
     def update_equity(self, equity: float) -> None:
-        if equity > self.session_peak_equity:
-            self.session_peak_equity = equity
+        self.session_peak_equity = max(self.session_peak_equity, equity)
 
     def record_close(self, pnl: float, *, now: datetime | None = None) -> dict[str, Any]:
         """Update streak counters after a realized close (no pauses)."""

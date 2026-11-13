@@ -8,10 +8,11 @@ import os
 import queue
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import requests
 
@@ -475,7 +476,7 @@ def channel_deep_link_keyboard(bot_username: str | None) -> dict[str, Any] | Non
     }
 
 
-def settings_keyboard(control: "RuntimeControl") -> dict[str, Any]:
+def settings_keyboard(control: RuntimeControl) -> dict[str, Any]:
     def _tog(on: bool) -> str:
         return "ON" if on else "OFF"
 
@@ -504,7 +505,7 @@ def settings_keyboard(control: "RuntimeControl") -> dict[str, Any]:
     }
 
 
-def format_settings_card(control: "RuntimeControl") -> str:
+def format_settings_card(control: RuntimeControl) -> str:
     def _line(label: str, muted: bool) -> str:
         state = "🔇 muted" if muted else "🔔 on"
         return f"{label} · <b>{state}</b>"
@@ -980,8 +981,8 @@ class TelegramCommandListener:
                     self.send_typing(chat_id)
                     if self._real_chat_handler is not None:
                         self._real_chat_handler(text, chat_id)
-                except Exception as exc:  # noqa: BLE001
-                    logger.exception("Async coach failed: %s", exc)
+                except Exception as exc:
+                    logger.exception("Async coach failed")
                     self._send(
                         f"⚠️ Coach error: {exc}",
                         chat_id,
@@ -1182,7 +1183,6 @@ class TelegramCommandListener:
         msg_obj = cb.get("message") or {}
         chat = msg_obj.get("chat") or {}
         chat_id = str(chat.get("id") or "")
-        message_id = int(msg_obj.get("message_id") or 0)
         data = str(cb.get("data") or "")
         callback_id = str(cb.get("id") or "")
         if not chat_id or chat_id not in self.allowed_chats:
@@ -1472,8 +1472,8 @@ class TelegramCommandListener:
             if self.chat_handler is not None:
                 try:
                     self.chat_handler(text, chat_id)
-                except Exception as exc:  # noqa: BLE001
-                    logger.exception("Coach chat failed: %s", exc)
+                except Exception as exc:
+                    logger.exception("Coach chat failed")
                     self._send(
                         f"⚠️ Coach error: {exc}",
                         chat_id,
@@ -1537,8 +1537,8 @@ class TelegramCommandListener:
             return
         try:
             handler(args, chat_id)
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("Command /%s failed: %s", cmd, exc)
+        except Exception as exc:
+            logger.exception("Command /%s failed", cmd)
             self._send(f"⚠️ Command error: {exc}", chat_id)
 
 
@@ -1574,8 +1574,10 @@ def format_status_card(
             f"Equity · <b>${fmt_money(equity)}</b>",
             f"Balance · ${fmt_money(balance)}",
             f"Today · {fmt_money(float(snap.get('today_pnl') or 0), signed=True)}",
-            f"Win rate · <b>{float(snap.get('win_rate') or 0):.0f}%</b> "
-            f"({int(snap.get('wins') or 0)}W / {int(snap.get('losses') or 0)}L)",
+            (
+                f"Win rate · <b>{float(snap.get('win_rate') or 0):.0f}%</b> "
+                f"({int(snap.get('wins') or 0)}W / {int(snap.get('losses') or 0)}L)"
+            ),
             f"Open · {open_count}/{max_open}",
             f"Risk $ · {risk_line}",
             f"Uptime · {hours}h {mins}m",
@@ -1655,7 +1657,7 @@ def format_scan_card(opps: list[Any], *, limit: int = 8) -> str:
         score = float(getattr(o, "score", 0) or 0)
         sym = getattr(o, "symbol", "?")
         allowed = "✅" if getattr(o, "allowed", False) else "⛔"
-        bar = "▓" * int(round(score * 8)) + "░" * (8 - int(round(score * 8)))
+        bar = "▓" * round(score * 8) + "░" * (8 - round(score * 8))
         lines.append(
             f"{allowed} <b>{sym}</b> {str(side).upper()} · "
             f"{score:.2f} <code>{bar}</code>"

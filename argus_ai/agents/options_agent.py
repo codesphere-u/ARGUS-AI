@@ -1,5 +1,6 @@
 import logging
-from typing import List, Dict, Any
+from typing import Literal
+
 from argus_ai.agents.base_agent import BaseAgent
 from argus_ai.core.models import AgentVote, MarketContext
 
@@ -13,8 +14,8 @@ class OptionsFlowAgent(BaseAgent):
     implied volatility (IV) rank, and dealer gamma positioning.
     """
 
-    def __init__(self):
-        super().__init__("Options Flow Agent")
+    def __init__(self, use_llm: bool = True) -> None:
+        super().__init__("Options Flow Agent", use_llm=use_llm)
 
     def analyze(self, ctx: MarketContext) -> AgentVote:
         system_prompt = (
@@ -41,14 +42,14 @@ class OptionsFlowAgent(BaseAgent):
                     score=float(llm_res.get("score", 0.0)),
                     key_arguments=llm_res.get("key_arguments", []),
                     concerns_raised=llm_res.get("concerns_raised", []),
-                    metrics={"source": "Gemini Derivatives Inference"}
+                    metrics={"source": "Gemini Derivatives Inference"},
                 )
-            except Exception:
-                pass
+            except (TypeError, KeyError, ValueError) as exc:
+                logger.debug("[%s] Invalid LLM JSON payload (%s); using heuristic.", self.name, exc)
 
         # Deterministic Heuristic Options Model
-        recs: List[str] = []
-        concerns: List[str] = []
+        recs: list[str] = []
+        concerns: list[str] = []
         score = 0.0
 
         # Simulate options metrics based on market context
@@ -69,6 +70,7 @@ class OptionsFlowAgent(BaseAgent):
             score -= 15.0
             concerns.append(f"Elevated IV skew (VIX {ctx.vix_level:.1f}) inflating option hedge costs")
 
+        rec: Literal["BUY", "SELL", "HOLD", "VETO"]
         if score >= 25.0:
             rec = "BUY"
             conf = 0.80

@@ -1,15 +1,15 @@
-import sys
 import json
 import logging
-import asyncio
-from typing import Dict, Any, List, Optional
+import sys
+from typing import Any, ClassVar
+
 import pandas as pd
 
+from argus_ai.agents.audit_agent import AuditAgent
 from argus_ai.committee import CommitteeOrchestrator
-from argus_ai.core.models import MarketContext
 from argus_ai.core.alpaca_client import AlpacaClient
 from argus_ai.core.kill_switch import EmergencyKillSwitch
-from argus_ai.agents.audit_agent import AuditAgent
+from argus_ai.core.models import MarketContext
 
 logger = logging.getLogger("argus.mcp_server")
 
@@ -22,7 +22,7 @@ class ArgusMCPServer:
     and Alpaca bracket order dispatching.
     """
 
-    TOOLS = [
+    TOOLS: ClassVar[list[dict[str, Any]]] = [
         {
             "name": "argus_convene_committee",
             "description": "Convenes the ARGUS AI 7-agent Investment Committee to analyze an asset, stress-test it with Devil's Advocate, and produce a Trade Passport.",
@@ -86,13 +86,13 @@ class ArgusMCPServer:
         }
     ]
 
-    def __init__(self):
-        self.orchestrator = CommitteeOrchestrator()
+    def __init__(self, use_llm: bool = True) -> None:
+        self.orchestrator = CommitteeOrchestrator(use_llm=use_llm)
         self.alpaca = AlpacaClient()
         self.kill_switch = EmergencyKillSwitch(alpaca_client=self.alpaca)
         self.audit = AuditAgent()
 
-    def handle_tool_call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    def handle_tool_call(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Dispatch MCP tool calls to underlying ARGUS AI modules."""
         if tool_name == "argus_convene_committee":
             ticker = arguments.get("ticker", "NVDA")
@@ -119,13 +119,15 @@ class ArgusMCPServer:
 
             passport = self.orchestrator.evaluate_opportunity(ctx, bars_df)
             self.audit.record_passport(passport)
-            return passport.model_dump()
+            passport_data: dict[str, Any] = passport.model_dump()
+            return passport_data
 
         elif tool_name == "argus_get_trade_passport":
             pid = arguments.get("passport_id")
             for p in self.audit.passports:
                 if p.passport_id == pid:
-                    return p.model_dump()
+                    found_data: dict[str, Any] = p.model_dump()
+                    return found_data
             return {"status": "NOT_FOUND", "passport_id": pid}
 
         elif tool_name == "argus_emergency_kill_switch":
@@ -156,7 +158,7 @@ class ArgusMCPServer:
         else:
             return {"error": f"Unknown MCP tool: {tool_name}"}
 
-    def process_json_rpc(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def process_json_rpc(self, request: dict[str, Any]) -> dict[str, Any]:
         """Process incoming MCP JSON-RPC message."""
         req_id = request.get("id")
         method = request.get("method")
@@ -164,33 +166,32 @@ class ArgusMCPServer:
 
         if method == "tools/list":
             return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": self.TOOLS}}
-        elif method == "tools/call":
-            tool_name = params.get("name")
+        if method == "tools/call":
+            tool_name = str(params.get("name", ""))
             tool_args = params.get("arguments", {})
             try:
                 res = self.handle_tool_call(tool_name, tool_args)
                 return {
                     "jsonrpc": "2.0",
                     "id": req_id,
-                    "result": {"content": [{"type": "text", "text": json.dumps(res, indent=2)}]}
+                    "result": {"content": [{"type": "text", "text": json.dumps(res, indent=2)}]},
                 }
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - JSON-RPC boundary returns structured internal error
                 return {
                     "jsonrpc": "2.0",
                     "id": req_id,
-                    "error": {"code": -32603, "message": str(e)}
+                    "error": {"code": -32603, "message": str(e)},
                 }
-        else:
-            return {
-                "jsonrpc": "2.0",
-                "id": req_id,
-                "error": {"code": -32601, "message": f"Method not found: {method}"}
-            }
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32601, "message": f"Method not found: {method}"},
+        }
 
-    def run_stdio(self):
+    def run_stdio(self) -> None:
         """Run MCP server in Standard I/O mode for Claude Desktop / Cursor."""
-        for line in sys.stdin:
-            line = line.strip()
+        for raw_line in sys.stdin:
+            line = raw_line.strip()
             if not line:
                 continue
             try:
@@ -198,7 +199,7 @@ class ArgusMCPServer:
                 resp = self.process_json_rpc(req)
                 sys.stdout.write(json.dumps(resp) + "\n")
                 sys.stdout.flush()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - JSON-RPC stdio parse boundary
                 err_resp = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": f"Parse error: {e}"}}
                 sys.stdout.write(json.dumps(err_resp) + "\n")
                 sys.stdout.flush()

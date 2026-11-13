@@ -1,6 +1,10 @@
-from typing import List
+import logging
+from typing import Literal
+
 from argus_ai.agents.base_agent import BaseAgent
 from argus_ai.core.models import AgentVote, MarketContext
+
+logger = logging.getLogger("argus.news_agent")
 
 
 class NewsAgent(BaseAgent):
@@ -9,15 +13,15 @@ class NewsAgent(BaseAgent):
     SEC filings, and market sentiment to identify catalyst momentum or event risks.
     """
 
-    def __init__(self):
-        super().__init__("News & Sentiment Agent")
+    def __init__(self, use_llm: bool = True) -> None:
+        super().__init__("News & Sentiment Agent", use_llm=use_llm)
 
     def analyze(self, ctx: MarketContext) -> AgentVote:
         news_items = ctx.recent_news or [
             f"{ctx.ticker} reports institutional accumulation and solid quarter guidance",
-            f"Analyst consensus upgrades price target following strong enterprise demand"
+            "Analyst consensus upgrades price target following strong enterprise demand",
         ]
-        
+
         system_prompt = (
             "You are the Lead Financial Sentiment & News Analyst for ARGUS AI. "
             "Evaluate headlines and market sentiment for the asset. Output JSON with: "
@@ -36,14 +40,35 @@ class NewsAgent(BaseAgent):
                     score=float(llm_res.get("score", 0.0)),
                     key_arguments=llm_res.get("key_arguments", []),
                     concerns_raised=llm_res.get("concerns_raised", []),
-                    metrics={"headline_count": len(news_items)}
+                    metrics={"headline_count": len(news_items)},
                 )
-            except Exception:
-                pass
+            except (TypeError, KeyError, ValueError) as exc:
+                logger.debug("[%s] Invalid LLM JSON payload (%s); using heuristic.", self.name, exc)
 
         # Heuristic Sentiment Parser
-        positive_keywords = ["upgrade", "strong", "beat", "partnership", "expansion", "growth", "breakthrough", "bullish", "inflow"]
-        negative_keywords = ["downgrade", "miss", "probe", "investigation", "layoffs", "delay", "lawsuit", "bearish", "outflow", "regulatory"]
+        positive_keywords = [
+            "upgrade",
+            "strong",
+            "beat",
+            "partnership",
+            "expansion",
+            "growth",
+            "breakthrough",
+            "bullish",
+            "inflow",
+        ]
+        negative_keywords = [
+            "downgrade",
+            "miss",
+            "probe",
+            "investigation",
+            "layoffs",
+            "delay",
+            "lawsuit",
+            "bearish",
+            "outflow",
+            "regulatory",
+        ]
 
         pos_count = 0
         neg_count = 0
@@ -62,6 +87,7 @@ class NewsAgent(BaseAgent):
         score = (pos_count - neg_count) * 30.0
         score = max(-100.0, min(100.0, score))
 
+        rec: Literal["BUY", "SELL", "HOLD", "VETO"]
         if score >= 25.0:
             rec = "BUY"
             conf = 0.78
@@ -80,5 +106,5 @@ class NewsAgent(BaseAgent):
             score=score,
             key_arguments=recs or ["Steady newsflow with constructive backdrop"],
             concerns_raised=concerns,
-            metrics={"positive_hits": pos_count, "negative_hits": neg_count, "total_headlines": len(news_items)}
+            metrics={"positive_hits": pos_count, "negative_hits": neg_count, "total_headlines": len(news_items)},
         )

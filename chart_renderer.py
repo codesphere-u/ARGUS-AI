@@ -248,8 +248,8 @@ def render_trade_chart(
         logger.warning("Chart render failed: %s", exc)
         try:
             plt.close("all")
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception:
+            logger.debug("Matplotlib figure cleanup failed", exc_info=True)
         return None
 
 
@@ -367,6 +367,6 @@ def render_equity_chart(
         logger.warning("Equity chart render failed: %s", exc)
         try:
             plt.close("all")
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception:
+            logger.debug("Matplotlib figure cleanup failed", exc_info=True)
         return None

@@ -1,34 +1,39 @@
 import argparse
-import sys
-import io
 import asyncio
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-
+import logging
+import sys
 from pathlib import Path
-from argus_ai.scanner import OpportunityScanner
-from argus_ai.core.alpaca_client import AlpacaClient
-from argus_ai.core.kill_switch import EmergencyKillSwitch
-from argus_ai.core.adaptive_weights import AdaptiveWeightManager
-from argus_ai.core.streamer import MarketStreamListener
-from argus_ai.mcp_server import ArgusMCPServer
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+
 from argus_ai.backtest import (
     AdversarialBacktestEngine,
+    compute_passport_digest,
     generate_multi_regime_dataset,
     replay_passport,
-    compute_passport_digest,
 )
 from argus_ai.config.settings import CONFIG
+from argus_ai.core.adaptive_weights import AdaptiveWeightManager
+from argus_ai.core.alpaca_client import AlpacaClient
+from argus_ai.core.kill_switch import EmergencyKillSwitch
+from argus_ai.core.streamer import MarketStreamListener
+from argus_ai.http_server import serve
+from argus_ai.mcp_server import ArgusMCPServer
+from argus_ai.scanner import OpportunityScanner
 
+logger = logging.getLogger("argus.cli")
 
 # Configure Windows console encoding for UTF-8 safety
 if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8")
+    except (AttributeError, OSError, ValueError) as exc:
+        logger.debug("Could not reconfigure stdio encoding: %s", exc)
 
 console = Console(force_terminal=True, highlight=False)
 
@@ -173,12 +178,23 @@ def display_replay_rich(verification):
     ))
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> None:
     print_banner()
     parser = argparse.ArgumentParser(description="ARGUS AI Autonomous Trading Desk CLI")
     parser.add_argument(
         "command",
-        choices=["scan", "single", "adversarial-demo", "kill-switch", "mcp", "stream", "weights", "backtest", "replay"],
+        choices=[
+            "scan",
+            "single",
+            "adversarial-demo",
+            "kill-switch",
+            "mcp",
+            "stream",
+            "weights",
+            "backtest",
+            "replay",
+            "serve",
+        ],
         nargs="?",
         default="scan",
     )
@@ -190,8 +206,23 @@ def main(argv=None):
     parser.add_argument("--passport", type=str, default="", help="Path to TradePassport JSON file for 'replay' mode")
     parser.add_argument("--trigger-kill", action="store_true", help="Trigger manual kill switch")
     parser.add_argument("--reset-kill", action="store_true", help="Reset manual kill switch")
+    parser.add_argument("--host", type=str, default="127.0.0.1", help="Bind host for 'serve' HTTP workbench")
+    parser.add_argument("--port", type=int, default=8000, help="Bind port for 'serve' HTTP workbench")
 
     args = parser.parse_args(argv)
+
+    if args.command == "serve":
+        console.print(
+            Panel(
+                f"[bold green]HTTP Workbench listening on[/bold green] [cyan]http://{args.host}:{args.port}[/cyan]\n"
+                "[dim]Endpoints: / (Portal UI / Info), /health, /healthz, /readyz, /info, /metrics, "
+                "/api/committee-spec, /api/backtest, /api/verify-passport[/dim]",
+                title="ARGUS AI HTTP Workbench & Observability Server",
+                border_style="cyan",
+            )
+        )
+        serve(host=args.host, port=args.port)
+        return
 
     alpaca = AlpacaClient()
     kill_switch = EmergencyKillSwitch(alpaca)

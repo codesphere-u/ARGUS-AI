@@ -1,8 +1,12 @@
+import logging
+from typing import Literal
+
 import pandas as pd
-import numpy as np
-from typing import Dict, Any, List
+
 from argus_ai.agents.base_agent import BaseAgent
 from argus_ai.core.models import AgentVote, MarketContext
+
+logger = logging.getLogger("argus.quant_agent")
 
 
 class QuantAgent(BaseAgent):
@@ -11,8 +15,8 @@ class QuantAgent(BaseAgent):
     momentum, and liquidity to produce deterministic mathematical signals.
     """
 
-    def __init__(self):
-        super().__init__("Quant Agent")
+    def __init__(self, use_llm: bool = True) -> None:
+        super().__init__("Quant Agent", use_llm=use_llm)
 
     def analyze(self, ctx: MarketContext, bars_df: pd.DataFrame) -> AgentVote:
         # Calculate technical indicators
@@ -20,7 +24,7 @@ class QuantAgent(BaseAgent):
         ema_20 = float(bars_df["close"].ewm(span=20).mean().iloc[-1])
         ema_50 = float(bars_df["close"].ewm(span=50).mean().iloc[-1])
         atr = self._calculate_atr(bars_df)
-        
+
         current_price = ctx.current_price
         trend_bullish = current_price > ema_20 > ema_50
         trend_bearish = current_price < ema_20 < ema_50
@@ -51,15 +55,15 @@ class QuantAgent(BaseAgent):
                     score=float(llm_res.get("score", 0.0)),
                     key_arguments=llm_res.get("key_arguments", []),
                     concerns_raised=llm_res.get("concerns_raised", []),
-                    metrics={"rsi": rsi, "ema_20": ema_20, "ema_50": ema_50, "atr": atr}
+                    metrics={"rsi": rsi, "ema_20": ema_20, "ema_50": ema_50, "atr": atr},
                 )
-            except Exception:
-                pass
+            except (TypeError, KeyError, ValueError) as exc:
+                logger.debug("[%s] Invalid LLM JSON payload (%s); using heuristic.", self.name, exc)
 
         # Deterministic Heuristic Engine
         score = 0.0
-        recs: List[str] = []
-        concerns: List[str] = []
+        recs: list[str] = []
+        concerns: list[str] = []
 
         if trend_bullish:
             score += 45.0
@@ -84,6 +88,7 @@ class QuantAgent(BaseAgent):
             score -= 20.0
             recs.append(f"Healthy bearish momentum on RSI ({rsi:.1f})")
 
+        action: Literal["BUY", "SELL", "HOLD", "VETO"]
         if score >= 35.0:
             action = "BUY"
             conf = min(0.92, 0.50 + abs(score) / 200.0)

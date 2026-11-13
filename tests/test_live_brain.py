@@ -161,7 +161,7 @@ def test_default_contract_sizes_for_new_assets():
 
 
 def test_symbol_matching_aliases_and_suffixes():
-    from main_bot import _build_command_listener, RuntimeControl
+    from main_bot import RuntimeControl, _build_command_listener
     from risk_engine import MultiSymbolRiskManager
     from rocket_exit import RocketExitManager
     from trade_journal import TradeJournal

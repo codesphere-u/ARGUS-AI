@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -13,7 +13,7 @@ try:
     from gymnasium import spaces
 except ImportError:
     class _FallbackEnv:
-        metadata: dict[str, Any] = {}
+        metadata: ClassVar[dict[str, Any]] = {}
 
         def __init__(self) -> None:
             pass
@@ -84,7 +84,7 @@ class TradingEnv(gym.Env):
     minus a modest drawdown penalty and fees.
     """
 
-    metadata = {"render_modes": ["human"]}
+    metadata: ClassVar[dict[str, list[str]]] = {"render_modes": ["human"]}
 
     ACTION_HOLD = 0
     ACTION_BUY = 1

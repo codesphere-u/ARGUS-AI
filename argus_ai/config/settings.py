@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass, field
-from typing import List
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -39,9 +39,19 @@ class ArgusConfig:
     alpaca: AlpacaSettings = field(default_factory=AlpacaSettings)
     risk: RiskSettings = field(default_factory=RiskSettings)
     committee: CommitteeSettings = field(default_factory=CommitteeSettings)
-    watchlist: List[str] = field(default_factory=lambda: [
-        "NVDA", "AAPL", "MSFT", "TSLA", "AMD", "SPY", "QQQ", "BTC/USD", "ETH/USD"
-    ])
+    watchlist: list[str] = field(
+        default_factory=lambda: [
+            "NVDA",
+            "AAPL",
+            "MSFT",
+            "TSLA",
+            "AMD",
+            "SPY",
+            "QQQ",
+            "BTC/USD",
+            "ETH/USD",
+        ]
+    )
 
 
 CONFIG = ArgusConfig()

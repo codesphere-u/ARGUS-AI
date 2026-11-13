@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 
 import pandas as pd
 
@@ -132,11 +133,11 @@ class BackgroundLearner:
             if self._on_done:
                 try:
                     self._on_done(result)
-                except Exception:  # noqa: BLE001
+                except Exception:
                     logger.exception("Learn on_done callback failed")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.last_result = {"status": "error", "reason": str(exc)}
-            logger.exception("Background learn failed: %s", exc)
+            logger.exception("Background learn failed")
         finally:
             next_job: LearnJob | None = None
             with self._lock:
@@ -171,8 +172,10 @@ def record_reentry_cooldown(symbol: str, pnl: float, *, now: datetime | None = N
     Winning closes: REENTRY_COOLDOWN_WIN_MIN (default 5m).
     Returns minutes applied.
     """
+    from datetime import timedelta
+    from datetime import timezone as _tz
+
     from config import MULTI
-    from datetime import timedelta, timezone as _tz
 
     now = now or datetime.now(_tz.utc)
     if now.tzinfo is None:
@@ -297,8 +300,10 @@ def currency_exposure_block(
         if abs(new_net) > max_exposure:
             return (
                 True,
-                f"Currency exposure {ccy} would be {new_net} "
-                f"(max±{max_exposure}) — need score≥{elite_override:.2f}",
+                (
+                    f"Currency exposure {ccy} would be {new_net} "
+                    f"(max±{max_exposure}) — need score≥{elite_override:.2f}"
+                ),
             )
     return False, ""
 
@@ -384,7 +389,7 @@ def maybe_schedule_learn(
     if default_learner.busy:
         return {"status": "skipped", "reason": "learn busy"}
 
-    closes = default_learner._closes_since_learn  # noqa: SLF001
+    closes = default_learner._closes_since_learn
     want_micro = closes >= max(1, closes_trigger)
     want_daily = daily and (last_learn_day is None or last_learn_day.date() != now.date())
 

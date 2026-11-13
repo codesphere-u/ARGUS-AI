@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pandas as pd
 
+from macro_filter import MacroFilter
 from quality_gate import (
     ema_stack_ok,
     evaluate_hot_grab,
@@ -11,6 +14,9 @@ from quality_gate import (
     extension_ok,
     rsi_ok,
 )
+
+FIXED_NOW = datetime(2026, 6, 15, 14, 0, tzinfo=timezone.utc)
+NO_MACRO = MacroFilter([])
 
 
 def _row(**kwargs) -> pd.Series:
@@ -76,6 +82,8 @@ def test_hot_grab_requires_h1_or_non_opposing_policy():
         row,
         "buy",
         scanner_score=0.95,
+        now=FIXED_NOW,
+        macro=NO_MACRO,
         policy_action=2,  # sell opposing
     )
     assert not gate.allowed
@@ -87,6 +95,8 @@ def test_hot_grab_requires_h1_or_non_opposing_policy():
         row,
         "buy",
         scanner_score=0.95,
+        now=FIXED_NOW,
+        macro=NO_MACRO,
         policy_action=0,
     )
     assert gate2.allowed, gate2.reject_reason
@@ -95,5 +105,5 @@ def test_hot_grab_requires_h1_or_non_opposing_policy():
 def test_evaluate_quality_rejects_low_score_setup():
     # Bearish stack for a buy request → reject
     row = _row(ema_20=1.07, ema_50=1.08, ema_200=1.09, close=1.06, rsi_14=50)
-    gate = evaluate_quality("EURUSDm", row, "buy")
+    gate = evaluate_quality("EURUSDm", row, "buy", now=FIXED_NOW, macro=NO_MACRO)
     assert not gate.allowed

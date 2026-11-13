@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Sequence
+from typing import Any
 
-from config import BOT, BRAND_SHORT, CHANNEL, RISK, ChannelConfig
 from chart_renderer import levels_from_atr, render_equity_chart, render_trade_chart
+from config import BOT, BRAND_SHORT, CHANNEL, RISK, ChannelConfig
 from telegram_format import format_channel_prediction, format_channel_progress
 from trade_journal import TradeJournal, default_journal
 
@@ -252,7 +253,7 @@ def maybe_post_channel_prediction(
             return result
 
     last_key = state.get("last_pred_key")
-    key = f"{getattr(top, 'symbol')}:{getattr(top, 'side')}"
+    key = f"{top.symbol}:{top.side}"
     if not force and last_key == key and last_pred is not None:
         elapsed = (now - last_pred.astimezone(timezone.utc)).total_seconds()
         if elapsed < cooldown * 2:

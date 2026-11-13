@@ -1,10 +1,18 @@
-import logging
 import datetime
-from typing import Optional, Dict, Any
+import logging
+from typing import Literal
 
 from argus_ai.config.settings import CONFIG, RiskSettings
-from argus_ai.core.models import KillSwitchState
 from argus_ai.core.alpaca_client import AlpacaClient
+from argus_ai.core.models import KillSwitchState
+
+CircuitBreakerType = Literal[
+    "NONE",
+    "MAX_DAILY_DRAWDOWN",
+    "CONSECUTIVE_LOSSES",
+    "VOLATILITY_SPIKE",
+    "MANUAL",
+]
 
 logger = logging.getLogger("argus.kill_switch")
 
@@ -16,7 +24,7 @@ class EmergencyKillSwitch:
     proactively protect capital and freeze automated trading when necessary.
     """
 
-    def __init__(self, alpaca_client: AlpacaClient, risk_settings: Optional[RiskSettings] = None):
+    def __init__(self, alpaca_client: AlpacaClient, risk_settings: RiskSettings | None = None) -> None:
         self.alpaca = alpaca_client
         self.risk = risk_settings or CONFIG.risk
         self.state = KillSwitchState()
@@ -35,8 +43,7 @@ class EmergencyKillSwitch:
         equity = acc.get("equity", 100000.0)
 
         # Track daily high-water mark
-        if equity > self.peak_daily_equity:
-            self.peak_daily_equity = equity
+        self.peak_daily_equity = max(self.peak_daily_equity, equity)
 
         # 1. Daily Drawdown Guard
         if self.peak_daily_equity > 0:
@@ -75,7 +82,12 @@ class EmergencyKillSwitch:
             self.consecutive_losses = 0
             logger.info("[KILL SWITCH] Trade profit recorded: $%.2f. Loss streak reset to 0.", pnl_usd)
 
-    def trigger(self, reason: str, circuit_type: str = "MANUAL", liquidate_all: bool = False):
+    def trigger(
+        self,
+        reason: str,
+        circuit_type: CircuitBreakerType = "MANUAL",
+        liquidate_all: bool = False,
+    ) -> None:
         """
         Engage the Kill Switch: Freeze portfolio and cancel all open Alpaca orders.
         """

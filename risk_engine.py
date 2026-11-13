@@ -113,7 +113,7 @@ class RiskEngine:
         step = max(self.lot_step, 1e-8)
         capped = min(float(lots), float(self.max_lot))
         import math
-        steps = int(math.floor(capped / step + 1e-9))
+        steps = math.floor(capped / step + 1e-9)
         floored = steps * step
         if floored < self.min_lot:
             if capped + 1e-12 >= self.min_lot:

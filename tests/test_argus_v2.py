@@ -1,15 +1,14 @@
-import pytest
 import json
-import pandas as pd
-import numpy as np
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from argus_ai.core.models import MarketContext, TradePassport, ConsensusDecision, DevilsAdvocateReview
-from argus_ai.core.adaptive_weights import AdaptiveWeightManager
+import pytest
+
 from argus_ai.agents.options_agent import OptionsFlowAgent
-from argus_ai.mcp_server import ArgusMCPServer
-from argus_ai.core.streamer import MarketStreamListener
+from argus_ai.core.adaptive_weights import AdaptiveWeightManager
 from argus_ai.core.alerts import InteractiveAlertDispatcher
+from argus_ai.core.models import ConsensusDecision, DevilsAdvocateReview, MarketContext, TradePassport
+from argus_ai.core.streamer import MarketStreamListener
+from argus_ai.mcp_server import ArgusMCPServer
 
 
 @pytest.fixture(autouse=True)

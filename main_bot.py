@@ -15,18 +15,32 @@ import argparse
 import json
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import pandas as pd
 import requests
 
-from config import BOT, BRAND_SHORT, CHANNEL, DATA, DATA_DIR, GEMINI, MODELS_DIR, MULTI, ONLINE, QUALITY, RISK, BotConfig
 from channel_updates import maybe_post_channel_prediction, maybe_post_channel_update
 from chart_renderer import append_advisor_note, render_equity_chart, render_trade_chart
+from config import (
+    BOT,
+    BRAND_SHORT,
+    CHANNEL,
+    DATA,
+    DATA_DIR,
+    GEMINI,
+    MODELS_DIR,
+    MULTI,
+    ONLINE,
+    QUALITY,
+    RISK,
+    BotConfig,
+)
 from data_pipeline import (
     MT5ConnectionError,
     build_feature_frame,
@@ -38,8 +52,8 @@ from data_pipeline import (
     shutdown_mt5,
     synthesize_ohlcv,
 )
-from environment import TradingEnv, build_live_observation
 from desk_coach import default_coach
+from environment import TradingEnv, build_live_observation
 from gemini_advisor import TradeAdvice, compose_alert, default_advisor
 from live_brain import (
     currency_exposure_block,
@@ -77,6 +91,8 @@ from telegram_commands import (
     positions_manage_keyboard,
 )
 from telegram_format import (
+    fmt_money,
+    fmt_price,
     format_backtest,
     format_daily_digest,
     format_desk_pulse,
@@ -89,8 +105,6 @@ from telegram_format import (
     format_shutdown,
     format_startup,
     format_train_complete,
-    fmt_money,
-    truncate_caption,
 )
 from trade_journal import TradeJournal, default_journal
 
@@ -188,8 +202,8 @@ def send_telegram(
                                     "retry_after", wait
                                 )
                             )
-                        except Exception:  # noqa: BLE001
-                            pass
+                        except Exception as exc:  # noqa: BLE001
+                            logger.debug("Failed parsing Telegram retry_after: %s", exc)
                         logger.warning(
                             "Telegram 429 flood control — retry in %.1fs (%s)",
                             wait,
@@ -346,7 +360,7 @@ def send_trade_alert(
 class HoldPolicy:
     """Fallback policy that always HOLDs when no trained model is available."""
 
-    def predict(self, obs, deterministic: bool = True):  # noqa: ANN001
+    def predict(self, obs, deterministic: bool = True):
         return 0, None
 
 
@@ -370,8 +384,8 @@ def load_policy(model_path: Path, expected_obs_dim: int | None = None):
                     model_dim,
                     expected_obs_dim,
                 )
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Could not inspect model observation space: %s", exc)
     return model
 
 
@@ -386,7 +400,7 @@ def _retry(fn, *, retries: int, base_delay: float, label: str):
     for attempt in range(retries):
         try:
             return fn()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             last_exc = exc
             msg = str(exc)
             if "10027" in msg or "AutoTrading disabled" in msg or "10026" in msg:
@@ -447,7 +461,7 @@ def _load_adopted_tickets() -> set[int]:
             return {int(x) for x in raw if str(x).isdigit() or isinstance(x, int)}
         if isinstance(raw, dict):
             return {int(x) for x in (raw.get("tickets") or [])}
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.debug("adopted_tickets load failed", exc_info=True)
     return set()
 
@@ -459,7 +473,7 @@ def _persist_adopted_tickets(tickets: set[int]) -> None:
             json.dumps({"tickets": sorted(tickets)}, indent=2),
             encoding="utf-8",
         )
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.warning("adopted_tickets save failed", exc_info=True)
 
 
@@ -612,8 +626,8 @@ def _reconnect_mt5(cfg: BotConfig, *, retries: int = 3, delay: float = 5.0) -> b
         try:
             try:
                 shutdown_mt5()
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("shutdown_mt5 error during cleanup: %s", exc)
             initialize_mt5(cfg.mt5_login, cfg.mt5_password, cfg.mt5_server, cfg.mt5_path)
             if mt5 is not None and mt5.terminal_info() is not None:
                 logger.info("MT5 reconnected (attempt %s/%s)", attempt + 1, retries)
@@ -654,8 +668,10 @@ def spread_too_wide(symbol: str, atr: float, *, cfg: BotConfig | None = None) ->
     if spread > limit:
         return (
             True,
-            f"Spread too wide ({spread:.5f} > {limit:.5f} = "
-            f"{RISK.max_spread_atr_fraction:.2f}×ATR)",
+            (
+                f"Spread too wide ({spread:.5f} > {limit:.5f} = "
+                f"{RISK.max_spread_atr_fraction:.2f}×ATR)"
+            ),
         )
     return False, ""
 
@@ -1115,7 +1131,7 @@ def run_backtest(
             env_action = TradingEnv.ACTION_SELL
 
         step_exit = exit_fill if env_action == TradingEnv.ACTION_SELL else None
-        obs, reward, terminated, truncated, info = env.step(
+        obs, _reward, terminated, truncated, info = env.step(
             env_action, exit_price=step_exit
         )
 
@@ -1341,8 +1357,8 @@ def _apply_mt5_symbol_hints(manager: MultiSymbolRiskManager, symbol: str) -> Non
             volume_step=float(getattr(info, "volume_step", 0) or 0),
             point=float(getattr(info, "point", 0) or 0),
         )
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("Failed applying MT5 symbol info for %s: %s", symbol, exc)
 
 
 def _synthetic_start_price(symbol: str) -> float:
@@ -1595,7 +1611,7 @@ def close_position_now(
 def build_coach_context(
     *,
     manager: MultiSymbolRiskManager,
-    account: "PaperAccount",
+    account: PaperAccount,
     control: RuntimeControl,
     mode: str,
     get_live_context: Callable[[], dict[str, Any]],
@@ -1666,7 +1682,7 @@ def _build_command_listener(
     control: RuntimeControl,
     manager: MultiSymbolRiskManager,
     rocket: RocketExitManager,
-    account: "PaperAccount",
+    account: PaperAccount,
     journal: TradeJournal,
     journal_ids: dict[str, int],
     loss_guard: Any,
@@ -1720,8 +1736,8 @@ def _build_command_listener(
                     cfg=cfg,
                     chat_id=chat_id,
                 )
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("cmd_chat failed: %s", exc)
+        except Exception as exc:
+            logger.exception("cmd_chat failed")
             reply_with_menu(
                 f"⚠️ Coach hit an error: {exc}\nTap <b>Ask coach</b> to retry.",
                 chat_id,
@@ -2384,8 +2400,8 @@ def run_live_loop(*, synthetic: bool = False, max_iterations: int | None = None)
                         f"⚠️ <b>LIVE bot aborted</b>\nMT5 connect failed: {exc}\n"
                         "Watchdog should restart. Check MT5 AutoTrading + login."
                     )
-                except Exception:  # noqa: BLE001
-                    pass
+                except Exception as tg_exc:  # noqa: BLE001
+                    logger.debug("Failed sending abort telegram: %s", tg_exc)
                 raise SystemExit(2) from exc
             logger.error("MT5 connection failed: %s — falling back to synthetic.", exc)
             synthetic = True
@@ -2584,7 +2600,7 @@ def run_live_loop(*, synthetic: bool = False, max_iterations: int | None = None)
                                 * eng.contract_size
                             )
                     account.equity = account.balance + total_unrealized
-                halted, newly_halted = manager.sync_circuit_breaker(account.equity, now)
+                _halted, newly_halted = manager.sync_circuit_breaker(account.equity, now)
                 if newly_halted and RISK.circuit_breaker_flatten:
                     open_now = list(manager.open_symbols())
                     send_telegram(
@@ -2782,11 +2798,15 @@ def run_live_loop(*, synthetic: bool = False, max_iterations: int | None = None)
                 if not runtime_control.mute_opportunity_alerts:
                     opp_kb = opportunity_alert_keyboard()
 
-                    def _notify_opp(msg: str, **_kw: Any) -> bool:
-                        return send_telegram(msg, reply_markup=opp_kb)
+                    def _notify_opp(
+                        msg: str, _kb: dict[str, Any] = opp_kb, **_kw: Any
+                    ) -> bool:
+                        return send_telegram(msg, reply_markup=_kb)
 
-                    def _notify_opp_photo(cap: str, img: bytes, **_kw: Any) -> bool:
-                        return send_telegram_photo(cap, img, reply_markup=opp_kb)
+                    def _notify_opp_photo(
+                        cap: str, img: bytes, _kb: dict[str, Any] = opp_kb, **_kw: Any
+                    ) -> bool:
+                        return send_telegram_photo(cap, img, reply_markup=_kb)
 
                     alert_opportunities(
                         opps,
@@ -2800,11 +2820,11 @@ def run_live_loop(*, synthetic: bool = False, max_iterations: int | None = None)
                 if not runtime_control.mute_channel_preds:
                     chan_kb = channel_deep_link_keyboard(cfg.telegram_bot_username)
 
-                    def _chan_text(msg: str) -> bool:
-                        return send_channel_text(msg, reply_markup=chan_kb)
+                    def _chan_text(msg: str, _kb: dict[str, Any] = chan_kb) -> bool:
+                        return send_channel_text(msg, reply_markup=_kb)
 
-                    def _chan_photo(cap: str, img: bytes) -> bool:
-                        return send_channel_photo(cap, img, reply_markup=chan_kb)
+                    def _chan_photo(cap: str, img: bytes, _kb: dict[str, Any] = chan_kb) -> bool:
+                        return send_channel_photo(cap, img, reply_markup=_kb)
 
                     pred = maybe_post_channel_prediction(
                         opps,
@@ -2834,7 +2854,7 @@ def run_live_loop(*, synthetic: bool = False, max_iterations: int | None = None)
                                     warn_card = format_news_warning_card(
                                         event_title=ev.title,
                                         currency=ev.country,
-                                        minutes_until=int(round(d_mins)),
+                                        minutes_until=round(d_mins),
                                         open_positions_count=len(active_open),
                                     )
                                     send_telegram(warn_card, reply_markup=news_warning_keyboard())
@@ -3309,8 +3329,8 @@ def run_live_loop(*, synthetic: bool = False, max_iterations: int | None = None)
                             float(lr.get("new_sharpe") or 0),
                         )
 
-            except Exception as exc:  # noqa: BLE001
-                logger.exception("Loop iteration error: %s", exc)
+            except Exception as exc:
+                logger.exception("Loop iteration error")
                 send_telegram(format_error(exc))
 
             time.sleep(cfg.poll_seconds)

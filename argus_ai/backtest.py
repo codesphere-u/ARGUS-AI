@@ -9,9 +9,9 @@ import datetime
 import hashlib
 import json
 import math
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Sequence, Union
-from unittest.mock import patch
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -64,7 +64,7 @@ class PointInTimeGuard:
     def validate_slice(
         cls,
         bars_df: pd.DataFrame,
-        decision_timestamp: Union[pd.Timestamp, datetime.datetime, str],
+        decision_timestamp: pd.Timestamp | datetime.datetime | str,
     ) -> pd.DataFrame:
         ts_index = cls.extract_timestamps(bars_df)
         decision_ts = pd.Timestamp(decision_timestamp)
@@ -153,7 +153,7 @@ def compute_disagreement_entropy(votes: Sequence[AgentVote]) -> float:
     if not votes:
         return 0.0
 
-    buckets: Dict[str, float] = {}
+    buckets: dict[str, float] = {}
     total_weight = 0.0
     for v in votes:
         w = max(float(v.confidence), 0.05)
@@ -203,16 +203,16 @@ class ReplayVerificationReport(BaseModel):
     consensus_status: str
     is_valid: bool
     computed_digest: str
-    expected_digest_matched: Optional[bool] = None
+    expected_digest_matched: bool | None = None
     disagreement_entropy: float
-    invariants_checked: List[str] = Field(default_factory=list)
-    violations: List[str] = Field(default_factory=list)
+    invariants_checked: list[str] = Field(default_factory=list)
+    violations: list[str] = Field(default_factory=list)
 
 
 def replay_passport(
-    passport_source: Union[TradePassport, Dict[str, Any], str, Path],
-    expected_digest: Optional[str] = None,
-    max_account_risk_pct: Optional[float] = None,
+    passport_source: TradePassport | dict[str, Any] | str | Path,
+    expected_digest: str | None = None,
+    max_account_risk_pct: float | None = None,
 ) -> ReplayVerificationReport:
     """
     Deterministically replay and validate a recorded TradePassport JSON/object,
@@ -235,8 +235,8 @@ def replay_passport(
     else:
         raise TypeError(f"Unsupported passport_source type: {type(passport_source)}")
 
-    invariants: List[str] = []
-    violations: List[str] = []
+    invariants: list[str] = []
+    violations: list[str] = []
     risk_cap = max_account_risk_pct if max_account_risk_pct is not None else CONFIG.risk.max_account_risk_pct
 
     # 1. Bracket Geometry Invariant
@@ -262,13 +262,14 @@ def replay_passport(
     # 3. Devil's Advocate Veto Authority Invariant
     invariants.append("DEVILS_ADVOCATE_VETO_AUTHORITY")
     da = passport.devils_advocate
-    if da.veto_recommended or da.disqualification_risk_pct >= 75.0:
-        if passport.consensus.status != "VETOED" or passport.consensus.downsize_factor != 0.0:
-            violations.append(
-                f"Devil's Advocate VETO breach: disqualification_risk={da.disqualification_risk_pct}% "
-                f"(veto={da.veto_recommended}), but consensus.status={passport.consensus.status} "
-                f"and downsize_factor={passport.consensus.downsize_factor}."
-            )
+    if (da.veto_recommended or da.disqualification_risk_pct >= 75.0) and (
+        passport.consensus.status != "VETOED" or passport.consensus.downsize_factor != 0.0
+    ):
+        violations.append(
+            f"Devil's Advocate VETO breach: disqualification_risk={da.disqualification_risk_pct}% "
+            f"(veto={da.veto_recommended}), but consensus.status={passport.consensus.status} "
+            f"and downsize_factor={passport.consensus.downsize_factor}."
+        )
 
     # 4. Downsize Caution Invariant
     invariants.append("DEVILS_ADVOCATE_DOWNSIZE_RULE")
@@ -276,12 +277,12 @@ def replay_passport(
         not da.veto_recommended
         and 45.0 <= da.disqualification_risk_pct < 75.0
         and abs(passport.consensus.composite_score) >= 25.0
+        and (passport.consensus.status != "DOWNSIZED" or abs(passport.consensus.downsize_factor - 0.5) > 1e-6)
     ):
-        if passport.consensus.status != "DOWNSIZED" or abs(passport.consensus.downsize_factor - 0.5) > 1e-6:
-            violations.append(
-                f"Downsize rule breach: disqualification_risk={da.disqualification_risk_pct}% "
-                f"requires DOWNSIZED status with 0.5x factor, got {passport.consensus.status} ({passport.consensus.downsize_factor})."
-            )
+        violations.append(
+            f"Downsize rule breach: disqualification_risk={da.disqualification_risk_pct}% "
+            f"requires DOWNSIZED status with 0.5x factor, got {passport.consensus.status} ({passport.consensus.downsize_factor})."
+        )
 
     # 5. Account Risk Budget Cap Invariant
     invariants.append("ACCOUNT_RISK_BUDGET_CAP")
@@ -292,7 +293,7 @@ def replay_passport(
 
     # 6. Cryptographic Digest Verification
     computed_digest = compute_passport_digest(passport)
-    digest_matched: Optional[bool] = None
+    digest_matched: bool | None = None
     if expected_digest is not None:
         invariants.append("SHA256_PASSPORT_DIGEST")
         digest_matched = computed_digest == expected_digest
@@ -368,7 +369,7 @@ class BacktestComparisonReport(BaseModel):
     return_outperformance_pct: float
     drawdown_reduction_pct: float
     sharpe_improvement: float
-    trade_records: List[SimulatedTradeRecord] = Field(default_factory=list)
+    trade_records: list[SimulatedTradeRecord] = Field(default_factory=list)
 
 
 def generate_multi_regime_dataset(
@@ -394,9 +395,9 @@ def generate_multi_regime_dataset(
     lows = np.zeros(n_bars, dtype=float)
     opens = np.zeros(n_bars, dtype=float)
     volumes = np.zeros(n_bars, dtype=float)
-    regimes: List[str] = []
+    regimes: list[str] = []
     vix_levels = np.zeros(n_bars, dtype=float)
-    news_col: List[List[str]] = []
+    news_col: list[list[str]] = []
 
     price = 120.0
     p1_end = int(n_bars * 0.35)
@@ -445,7 +446,7 @@ def generate_multi_regime_dataset(
                 vix = 29.0 + (cycle_pos - 16) * 0.5
                 headlines = [
                     f"{ticker} experiences sharp liquidity flush after crowded overbought top",
-                    f"Institutional profit-taking accelerates on elevated volatility",
+                    "Institutional profit-taking accelerates on elevated volatility",
                 ]
                 wick = 0.35
         elif i < p3_end:
@@ -514,18 +515,20 @@ class AdversarialBacktestEngine:
 
     def __init__(
         self,
-        cost_model: Optional[ExecutionCostModel] = None,
+        cost_model: ExecutionCostModel | None = None,
         initial_equity: float = 100_000.0,
         warmup_bars: int = 50,
         eval_stride: int = 4,
         holding_horizon: int = 12,
+        use_llm: bool = False,
     ) -> None:
         self.cost_model = cost_model or ExecutionCostModel()
         self.initial_equity = float(initial_equity)
         self.warmup_bars = int(warmup_bars)
         self.eval_stride = int(eval_stride)
         self.holding_horizon = int(holding_horizon)
-        self.committee = CommitteeOrchestrator()
+        self.use_llm = bool(use_llm)
+        self.committee = CommitteeOrchestrator(use_llm=self.use_llm)
 
     def _resolve_bracket_outcome(
         self,
@@ -536,7 +539,7 @@ class AdversarialBacktestEngine:
         take_profit: float,
         shares: float,
         atr: float,
-    ) -> tuple[float, float, float, float, Literal["TAKE_PROFIT", "STOP_LOSS", "HORIZON_EXIT"]]:
+    ) -> tuple[float, float, float, float, float, Literal["TAKE_PROFIT", "STOP_LOSS", "HORIZON_EXIT"]]:
         """
         Simulate forward bar-by-bar bracket resolution over the holding window
         with realistic entry/exit slippage and commissions.
@@ -609,7 +612,7 @@ class AdversarialBacktestEngine:
         df = df.sort_values('timestamp')
 
         # Filter executed trades to build the equity curve
-        executed_df = df[df['executed'] == True].copy()
+        executed_df = df[df["executed"]].copy()
         executed_df['cumulative_pnl'] = executed_df['net_pnl_usd'].cumsum()
         executed_df['equity'] = report.argus_committee.initial_equity + executed_df['cumulative_pnl']
 
@@ -655,14 +658,14 @@ class AdversarialBacktestEngine:
     def _compute_summary_metrics(
         strategy_name: str,
         initial_equity: float,
-        equity_curve: List[float],
-        trade_pnls: List[float],
+        equity_curve: list[float],
+        trade_pnls: list[float],
         total_costs: float,
         vetoed_count: int = 0,
         downsized_count: int = 0,
         veto_saved_loss: float = 0.0,
         veto_accuracy: float = 0.0,
-        entropies: Optional[List[float]] = None,
+        entropies: list[float] | None = None,
     ) -> BacktestMetrics:
         ending_equity = equity_curve[-1] if equity_curve else initial_equity
         net_pnl = ending_equity - initial_equity
@@ -746,8 +749,8 @@ class AdversarialBacktestEngine:
         argus_curve = [argus_equity]
         naive_curve = [naive_equity]
 
-        argus_pnls: List[float] = []
-        naive_pnls: List[float] = []
+        argus_pnls: list[float] = []
+        naive_pnls: list[float] = []
         argus_costs = 0.0
         naive_costs = 0.0
 
@@ -755,182 +758,181 @@ class AdversarialBacktestEngine:
         vetoed_losing_count = 0
         veto_saved_loss = 0.0
         downsized_count = 0
-        entropies: List[float] = []
-        records: List[SimulatedTradeRecord] = []
+        entropies: list[float] = []
+        records: list[SimulatedTradeRecord] = []
         evaluated_count = 0
 
-        # Ensure deterministic heuristic execution without external network LLM calls
-        with patch("argus_ai.agents.base_agent.BaseAgent.query_llm_json", return_value=None):
-            for idx in range(self.warmup_bars, n_bars - self.holding_horizon, self.eval_stride):
-                decision_ts = ts_index[idx]
-                # Strict Point-in-Time slice validation
-                pit_slice = PointInTimeGuard.validate_slice(bars_df.iloc[: idx + 1], decision_ts)
-                future_window = bars_df.iloc[idx + 1 : idx + 1 + self.holding_horizon]
+        # Deterministic committee execution relies on explicit use_llm configuration
+        for idx in range(self.warmup_bars, n_bars - self.holding_horizon, self.eval_stride):
+            decision_ts = ts_index[idx]
+            # Strict Point-in-Time slice validation
+            pit_slice = PointInTimeGuard.validate_slice(bars_df.iloc[: idx + 1], decision_ts)
+            future_window = bars_df.iloc[idx + 1 : idx + 1 + self.holding_horizon]
 
-                current_price = float(pit_slice["close"].iloc[-1])
-                rsi_val = self.committee.quant._calculate_rsi(pit_slice["close"])
-                atr_val = self.committee.quant._calculate_atr(pit_slice)
-                regime = (
-                    str(pit_slice["market_regime"].iloc[-1])
-                    if "market_regime" in pit_slice.columns
-                    else "BULLISH"
+            current_price = float(pit_slice["close"].iloc[-1])
+            rsi_val = self.committee.quant._calculate_rsi(pit_slice["close"])
+            atr_val = self.committee.quant._calculate_atr(pit_slice)
+            regime = (
+                str(pit_slice["market_regime"].iloc[-1])
+                if "market_regime" in pit_slice.columns
+                else "BULLISH"
+            )
+            vix_val = (
+                float(pit_slice["vix_level"].iloc[-1])
+                if "vix_level" in pit_slice.columns
+                else 17.5
+            )
+            if "recent_news" in pit_slice.columns:
+                raw_news = pit_slice["recent_news"].iloc[-1]
+                news_list = list(raw_news) if isinstance(raw_news, (list, tuple)) else [str(raw_news)]
+            elif "headline" in pit_slice.columns:
+                news_list = [str(pit_slice["headline"].iloc[-1])]
+            else:
+                news_list = [f"{ticker} institutional flow update"]
+
+            ctx = MarketContext(
+                ticker=ticker,
+                current_price=current_price,
+                high_24h=float(pit_slice["high"].tail(24).max()),
+                low_24h=float(pit_slice["low"].tail(24).min()),
+                volume_24h=float(pit_slice["volume"].tail(24).sum()),
+                rsi_14=rsi_val,
+                atr_14=atr_val,
+                market_regime=regime,
+                vix_level=vix_val,
+                recent_news=news_list,
+            )
+
+            evaluated_count += 1
+            passport = self.committee.evaluate_opportunity(ctx, pit_slice, account_equity=argus_equity)
+            entropy = compute_disagreement_entropy(passport.agent_votes)
+            entropies.append(entropy)
+
+            # --- 1. Naive Single-Agent Quant Baseline ---
+            quant_vote = passport.agent_votes[0]
+            if quant_vote.recommendation in ("BUY", "SELL") or abs(quant_vote.score) >= 20.0:
+                naive_dir: Literal["LONG", "SHORT"] = "LONG" if quant_vote.score >= 0 else "SHORT"
+                naive_consensus = ConsensusDecision(
+                    status="APPROVED",
+                    overall_confidence=quant_vote.confidence,
+                    composite_score=quant_vote.score,
+                    downsize_factor=1.0,
+                    primary_catalyst="Unfiltered Quant Signal",
+                    main_opposition="None",
+                    executive_summary="Naive baseline full-size execution",
+                    unanimous=True,
                 )
-                vix_val = (
-                    float(pit_slice["vix_level"].iloc[-1])
-                    if "vix_level" in pit_slice.columns
-                    else 17.5
+                naive_risk = self.committee.risk_commander.calculate_trade_parameters(
+                    ctx=ctx,
+                    direction=naive_dir,
+                    consensus=naive_consensus,
+                    account_equity=naive_equity,
                 )
-                if "recent_news" in pit_slice.columns:
-                    raw_news = pit_slice["recent_news"].iloc[-1]
-                    news_list = list(raw_news) if isinstance(raw_news, (list, tuple)) else [str(raw_news)]
-                elif "headline" in pit_slice.columns:
-                    news_list = [str(pit_slice["headline"].iloc[-1])]
-                else:
-                    news_list = [f"{ticker} institutional flow update"]
-
-                ctx = MarketContext(
-                    ticker=ticker,
-                    current_price=current_price,
-                    high_24h=float(pit_slice["high"].tail(24).max()),
-                    low_24h=float(pit_slice["low"].tail(24).min()),
-                    volume_24h=float(pit_slice["volume"].tail(24).sum()),
-                    rsi_14=rsi_val,
-                    atr_14=atr_val,
-                    market_regime=regime,
-                    vix_level=vix_val,
-                    recent_news=news_list,
+                _, _, _, n_cost, n_pnl, _ = self._resolve_bracket_outcome(
+                    future_bars=future_window,
+                    direction=naive_dir,
+                    raw_entry=current_price,
+                    stop_loss=naive_risk["stop_loss"],
+                    take_profit=naive_risk["take_profit"],
+                    shares=naive_risk["shares"],
+                    atr=atr_val,
                 )
+                naive_equity += n_pnl
+                naive_pnls.append(n_pnl)
+                naive_costs += n_cost
 
-                evaluated_count += 1
-                passport = self.committee.evaluate_opportunity(ctx, pit_slice, account_equity=argus_equity)
-                entropy = compute_disagreement_entropy(passport.agent_votes)
-                entropies.append(entropy)
+            naive_curve.append(naive_equity)
 
-                # --- 1. Naive Single-Agent Quant Baseline ---
-                quant_vote = passport.agent_votes[0]
-                if quant_vote.recommendation in ("BUY", "SELL") or abs(quant_vote.score) >= 20.0:
-                    naive_dir: Literal["LONG", "SHORT"] = "LONG" if quant_vote.score >= 0 else "SHORT"
-                    naive_consensus = ConsensusDecision(
-                        status="APPROVED",
-                        overall_confidence=quant_vote.confidence,
-                        composite_score=quant_vote.score,
-                        downsize_factor=1.0,
-                        primary_catalyst="Unfiltered Quant Signal",
-                        main_opposition="None",
-                        executive_summary="Naive baseline full-size execution",
-                        unanimous=True,
-                    )
-                    naive_risk = self.committee.risk_commander.calculate_trade_parameters(
-                        ctx=ctx,
-                        direction=naive_dir,
-                        consensus=naive_consensus,
-                        account_equity=naive_equity,
-                    )
-                    _, _, _, n_cost, n_pnl, _ = self._resolve_bracket_outcome(
-                        future_bars=future_window,
-                        direction=naive_dir,
-                        raw_entry=current_price,
-                        stop_loss=naive_risk["stop_loss"],
-                        take_profit=naive_risk["take_profit"],
-                        shares=naive_risk["shares"],
-                        atr=atr_val,
-                    )
-                    naive_equity += n_pnl
-                    naive_pnls.append(n_pnl)
-                    naive_costs += n_cost
-
-                naive_curve.append(naive_equity)
-
-                # --- 2. Full ARGUS Committee with Devil's Advocate Veto & Downsize ---
-                status = passport.consensus.status
-                if status in ("APPROVED", "DOWNSIZED"):
-                    if status == "DOWNSIZED":
-                        downsized_count += 1
-                    fill_in, fill_out, gross_pnl, a_cost, a_pnl, exit_reason = self._resolve_bracket_outcome(
-                        future_bars=future_window,
+            # --- 2. Full ARGUS Committee with Devil's Advocate Veto & Downsize ---
+            status = passport.consensus.status
+            if status in ("APPROVED", "DOWNSIZED"):
+                if status == "DOWNSIZED":
+                    downsized_count += 1
+                fill_in, fill_out, gross_pnl, a_cost, a_pnl, exit_reason = self._resolve_bracket_outcome(
+                    future_bars=future_window,
+                    direction=passport.direction,
+                    raw_entry=current_price,
+                    stop_loss=passport.stop_loss,
+                    take_profit=passport.take_profit,
+                    shares=passport.shares_or_contracts,
+                    atr=atr_val,
+                )
+                argus_equity += a_pnl
+                argus_pnls.append(a_pnl)
+                argus_costs += a_cost
+                records.append(
+                    SimulatedTradeRecord(
+                        step_index=idx,
+                        timestamp=decision_ts.isoformat(),
+                        passport_id=passport.passport_id,
+                        ticker=ticker,
                         direction=passport.direction,
-                        raw_entry=current_price,
-                        stop_loss=passport.stop_loss,
-                        take_profit=passport.take_profit,
+                        consensus_status=status,
+                        executed=True,
+                        entry_price=fill_in,
+                        exit_price=fill_out,
                         shares=passport.shares_or_contracts,
-                        atr=atr_val,
+                        gross_pnl_usd=gross_pnl,
+                        transaction_cost_usd=a_cost,
+                        net_pnl_usd=a_pnl,
+                        exit_reason=exit_reason,
+                        disqualification_risk_pct=passport.devils_advocate.disqualification_risk_pct,
+                        disagreement_entropy=entropy,
                     )
-                    argus_equity += a_pnl
-                    argus_pnls.append(a_pnl)
-                    argus_costs += a_cost
-                    records.append(
-                        SimulatedTradeRecord(
-                            step_index=idx,
-                            timestamp=decision_ts.isoformat(),
-                            passport_id=passport.passport_id,
-                            ticker=ticker,
-                            direction=passport.direction,
-                            consensus_status=status,
-                            executed=True,
-                            entry_price=fill_in,
-                            exit_price=fill_out,
-                            shares=passport.shares_or_contracts,
-                            gross_pnl_usd=gross_pnl,
-                            transaction_cost_usd=a_cost,
-                            net_pnl_usd=a_pnl,
-                            exit_reason=exit_reason,
-                            disqualification_risk_pct=passport.devils_advocate.disqualification_risk_pct,
-                            disagreement_entropy=entropy,
-                        )
-                    )
-                elif status == "VETOED":
-                    vetoed_count += 1
-                    # Compute counterfactual PnL had the vetoed trade been taken at full size (1.0x)
-                    cf_consensus = ConsensusDecision(
-                        status="APPROVED",
-                        overall_confidence=passport.consensus.overall_confidence,
-                        composite_score=passport.consensus.composite_score,
-                        downsize_factor=1.0,
-                        primary_catalyst=passport.consensus.primary_catalyst,
-                        main_opposition=passport.consensus.main_opposition,
-                        executive_summary="Counterfactual un-vetoed execution",
-                    )
-                    cf_risk = self.committee.risk_commander.calculate_trade_parameters(
-                        ctx=ctx,
+                )
+            elif status == "VETOED":
+                vetoed_count += 1
+                # Compute counterfactual PnL had the vetoed trade been taken at full size (1.0x)
+                cf_consensus = ConsensusDecision(
+                    status="APPROVED",
+                    overall_confidence=passport.consensus.overall_confidence,
+                    composite_score=passport.consensus.composite_score,
+                    downsize_factor=1.0,
+                    primary_catalyst=passport.consensus.primary_catalyst,
+                    main_opposition=passport.consensus.main_opposition,
+                    executive_summary="Counterfactual un-vetoed execution",
+                )
+                cf_risk = self.committee.risk_commander.calculate_trade_parameters(
+                    ctx=ctx,
+                    direction=passport.direction,
+                    consensus=cf_consensus,
+                    account_equity=argus_equity,
+                )
+                fill_in, fill_out, gross_pnl, _cf_cost, cf_pnl, _ = self._resolve_bracket_outcome(
+                    future_bars=future_window,
+                    direction=passport.direction,
+                    raw_entry=current_price,
+                    stop_loss=cf_risk["stop_loss"],
+                    take_profit=cf_risk["take_profit"],
+                    shares=cf_risk["shares"],
+                    atr=atr_val,
+                )
+                if cf_pnl < 0:
+                    vetoed_losing_count += 1
+                    veto_saved_loss += abs(cf_pnl)
+                records.append(
+                    SimulatedTradeRecord(
+                        step_index=idx,
+                        timestamp=decision_ts.isoformat(),
+                        passport_id=passport.passport_id,
+                        ticker=ticker,
                         direction=passport.direction,
-                        consensus=cf_consensus,
-                        account_equity=argus_equity,
-                    )
-                    fill_in, fill_out, gross_pnl, cf_cost, cf_pnl, _ = self._resolve_bracket_outcome(
-                        future_bars=future_window,
-                        direction=passport.direction,
-                        raw_entry=current_price,
-                        stop_loss=cf_risk["stop_loss"],
-                        take_profit=cf_risk["take_profit"],
+                        consensus_status="VETOED",
+                        executed=False,
+                        entry_price=fill_in,
+                        exit_price=fill_out,
                         shares=cf_risk["shares"],
-                        atr=atr_val,
+                        gross_pnl_usd=0.0,
+                        transaction_cost_usd=0.0,
+                        net_pnl_usd=0.0,
+                        exit_reason="VETOED_COUNTERFACTUAL",
+                        disqualification_risk_pct=passport.devils_advocate.disqualification_risk_pct,
+                        disagreement_entropy=entropy,
+                        counterfactual_pnl_usd=cf_pnl,
                     )
-                    if cf_pnl < 0:
-                        vetoed_losing_count += 1
-                        veto_saved_loss += abs(cf_pnl)
-                    records.append(
-                        SimulatedTradeRecord(
-                            step_index=idx,
-                            timestamp=decision_ts.isoformat(),
-                            passport_id=passport.passport_id,
-                            ticker=ticker,
-                            direction=passport.direction,
-                            consensus_status="VETOED",
-                            executed=False,
-                            entry_price=fill_in,
-                            exit_price=fill_out,
-                            shares=cf_risk["shares"],
-                            gross_pnl_usd=0.0,
-                            transaction_cost_usd=0.0,
-                            net_pnl_usd=0.0,
-                            exit_reason="VETOED_COUNTERFACTUAL",
-                            disqualification_risk_pct=passport.devils_advocate.disqualification_risk_pct,
-                            disagreement_entropy=entropy,
-                            counterfactual_pnl_usd=cf_pnl,
-                        )
-                    )
+                )
 
-                argus_curve.append(argus_equity)
+            argus_curve.append(argus_equity)
 
         veto_acc = (vetoed_losing_count / vetoed_count * 100.0) if vetoed_count > 0 else 0.0
 
@@ -1015,3 +1017,6 @@ class AdversarialBacktestEngine:
 > **Key Takeaway:** During euphoric overbought spikes (`RSI > 68` coupled with `VIX > 24` in choppy regimes), the single-agent Quant model blindly buys EMA breakouts right before liquidity flushes. The ARGUS **Devil's Advocate Agent** detects the asymmetric trap and exercises unilateral **VETO** power, preserving `${a.veto_saved_loss_usd:,.2f}` in capital and compressing maximum drawdown from `{b.max_drawdown_pct:.2f}%` to `{a.max_drawdown_pct:.2f}%`.
 """
         return md
+
+
+BacktestEngine = AdversarialBacktestEngine

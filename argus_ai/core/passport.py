@@ -70,6 +70,7 @@ class TradePassportFormatter:
         for trap in p.devils_advocate.identified_traps:
             md += f"  - ⚠️ {trap}\n"
 
+        fill_price_str = f"${p.fill_price:.2f}" if p.fill_price is not None else "N/A"
         md += f"""* **Mandated Contingency:** {p.devils_advocate.recommended_contingency}
 
 ---
@@ -77,7 +78,7 @@ class TradePassportFormatter:
 ## ⚡ Alpaca Execution Audit
 * **Alpaca Order ID:** `{p.alpaca_order_id or 'N/A'}`
 * **Client Order ID:** `{p.alpaca_client_order_id or 'N/A'}`
-* **Fill Price:** `${p.fill_price:.2f}` if p.fill_price else 'N/A'
+* **Fill Price:** {fill_price_str}
 """
 
         if p.post_trade_reflection:

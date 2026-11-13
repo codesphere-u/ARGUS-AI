@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timezone
-from config import BRAND_NAME, BRAND_SHORT
 from html import escape
-from typing import Sequence
+
+from config import BRAND_NAME
 
 
 def _digits(symbol: str) -> int:
@@ -60,14 +61,14 @@ def mode_badge(mode: str | None = None, *, paper: bool | None = None) -> str:
 
 def fmt_lot(volume: float) -> str:
     if abs(volume - round(volume)) < 1e-9:
-        return f"{int(round(volume))}"
+        return f"{round(volume)}"
     text = f"{volume:.2f}".rstrip("0").rstrip(".")
     return text or "0"
 
 
 def score_bar(score: float, width: int = 8) -> str:
     score = max(0.0, min(1.0, float(score)))
-    filled = int(round(score * width))
+    filled = round(score * width)
     return "▓" * filled + "░" * (width - filled)
 
 
@@ -170,8 +171,10 @@ def format_desk_pulse(
         f"{mode_badge(mode)} · Mode · <b>{escape(mode)}</b>",
         f"Equity · <b>${fmt_money(equity)}</b>",
         f"Today · {fmt_money(float(snap.get('today_pnl') or 0), signed=True)}",
-        f"Win rate · <b>{float(snap.get('win_rate') or 0):.0f}%</b> "
-        f"({int(snap.get('wins') or 0)}W / {int(snap.get('losses') or 0)}L)",
+        (
+            f"Win rate · <b>{float(snap.get('win_rate') or 0):.0f}%</b> "
+            f"({int(snap.get('wins') or 0)}W / {int(snap.get('losses') or 0)}L)"
+        ),
         f"Open · {open_count}/{max_open}",
     ]
     if streak:
@@ -185,7 +188,7 @@ def format_desk_pulse(
     return "\n".join(lines)
 
 
-def format_copy_desk(*args, **kwargs):  # noqa: ANN002, ANN003
+def format_copy_desk(*args, **kwargs):
     """Re-export deterministic copy card from desk_coach."""
     from desk_coach import format_copy_desk as _fmt
 
@@ -329,12 +332,14 @@ def format_entry(
         if tag_line:
             lines.append(tag_line)
         lines.extend([
-            "<pre>"
-            f"Entry  {entry_s}\n"
-            f"SL     {sl_s}\n"
-            f"TP     {tp_s}\n"
-            f"Lot    {lot_s}"
-            "</pre>",
+            (
+                "<pre>"
+                f"Entry  {entry_s}\n"
+                f"SL     {sl_s}\n"
+                f"TP     {tp_s}\n"
+                f"Lot    {lot_s}"
+                "</pre>"
+            ),
             f"📋 <code>{escape(clip)}</code>",
         ])
         if why:
@@ -354,14 +359,16 @@ def format_entry(
         lines.append(tag_line)
     lines.extend([
         "",
-        "<pre>"
-        f"Side   {label}\n"
-        f"Entry  {entry_s}\n"
-        f"SL     {sl_s}\n"
-        f"TP     {tp_s}\n"
-        f"Lot    {lot_s}\n"
-        f"R:R    {rr}"
-        "</pre>",
+        "\n".join(
+            (
+                f"<pre>Side   {label}",
+                f"Entry  {entry_s}",
+                f"SL     {sl_s}",
+                f"TP     {tp_s}",
+                f"Lot    {lot_s}",
+                f"R:R    {rr}</pre>",
+            )
+        ),
         "",
         f"📋 <code>{escape(clip)}</code>",
     ])
@@ -507,8 +514,8 @@ def format_opportunities_alert(
         blocks.append("──────────────")
         blocks.append(
             format_opportunity(
-                symbol=getattr(opp, "symbol"),
-                side=getattr(opp, "side"),
+                symbol=opp.symbol,
+                side=opp.side,
                 score=float(getattr(opp, "score", 0.0)),
                 price=float(getattr(opp, "price", 0.0)),
                 atr=float(getattr(opp, "atr", 0.0)),
@@ -620,15 +627,17 @@ def format_channel_progress(
         blurb,
         f"<i>{stamp}</i> · {escape(mode)}",
         "",
-        "<pre>"
-        f"Invested   ${fmt_money(invested)}\n"
-        f"Equity     ${fmt_money(equity)}\n"
-        f"Profit     {pnl_sign}${fmt_money(abs(total_pnl))}\n"
-        f"Return     {ret_sign}{ret:.2f}%\n"
-        f"Today      {today_sign}${fmt_money(abs(today))}\n"
-        f"Win rate   {win_rate:.0f}%  ({closed} closed)\n"
-        f"Open now   {open_n}"
-        "</pre>",
+        "\n".join(
+            (
+                f"<pre>Invested   ${fmt_money(invested)}",
+                f"Equity     ${fmt_money(equity)}",
+                f"Profit     {pnl_sign}${fmt_money(abs(total_pnl))}",
+                f"Return     {ret_sign}{ret:.2f}%",
+                f"Today      {today_sign}${fmt_money(abs(today))}",
+                f"Win rate   {win_rate:.0f}%  ({closed} closed)",
+                f"Open now   {open_n}</pre>",
+            )
+        ),
         "",
         "<i>Free high-confidence setups + transparent progress for followers.</i>",
     ]
@@ -746,10 +755,14 @@ def format_pnl_card(
             f"💰 <b>PnL</b> · {mode_badge(mode)}",
             "",
             f"Today · <b>{fmt_money(float(snap.get('today_pnl') or 0), signed=True)}</b>",
-            f"Total · <b>{fmt_money(float(snap.get('total_pnl') or 0), signed=True)}</b> "
-            f"({float(snap.get('total_return_pct') or 0):+.2f}%)",
-            f"Win rate · <b>{float(snap.get('win_rate') or 0):.0f}%</b> "
-            f"({int(snap.get('wins') or 0)}W / {int(snap.get('losses') or 0)}L)",
+            (
+                f"Total · <b>{fmt_money(float(snap.get('total_pnl') or 0), signed=True)}</b> "
+                f"({float(snap.get('total_return_pct') or 0):+.2f}%)"
+            ),
+            (
+                f"Win rate · <b>{float(snap.get('win_rate') or 0):.0f}%</b> "
+                f"({int(snap.get('wins') or 0)}W / {int(snap.get('losses') or 0)}L)"
+            ),
             f"Closed · {int(snap.get('closed_trades') or 0)} · Open · {open_n}",
             f"Equity · <b>${fmt_money(float(snap.get('equity') or 0))}</b>",
         ]
@@ -771,7 +784,7 @@ def format_lot_calculator(
     sl_dist = abs(entry - stop_loss)
     return "\n".join(
         [
-            f"🧮 <b>LOT SIZE CALCULATOR</b>",
+            "🧮 <b>LOT SIZE CALCULATOR</b>",
             f"Symbol · <b>{sym}</b>",
             "",
             f"Account Equity · <b>${fmt_money(equity)}</b>",

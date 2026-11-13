@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
-from typing import Iterable
 
 import numpy as np
 import pandas as pd
@@ -64,10 +64,9 @@ def initialize_mt5(
     if not mt5.initialize(**kwargs):
         raise MT5ConnectionError(f"MT5 initialize failed: {mt5.last_error()}")
 
-    if login is not None and password and server:
-        if not mt5.login(login, password=password, server=server):
-            mt5.shutdown()
-            raise MT5ConnectionError(f"MT5 login failed: {mt5.last_error()}")
+    if login is not None and password and server and not mt5.login(login, password=password, server=server):
+        mt5.shutdown()
+        raise MT5ConnectionError(f"MT5 login failed: {mt5.last_error()}")
 
     logger.info("MT5 initialized successfully.")
 
@@ -390,8 +389,8 @@ def build_feature_frame(
     context_ind = add_indicators(context, cfg, suffix="_1h")
 
     context_feature_cols = [
-        f"ema_20_1h",
-        f"ema_50_1h",
+        "ema_20_1h",
+        "ema_50_1h",
         f"rsi_{cfg.rsi_period}_1h",
         f"atr_{cfg.atr_period}_1h",
     ]

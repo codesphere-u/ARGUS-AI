@@ -147,7 +147,7 @@ class MacroFilter:
         resp.raise_for_status()
         data = resp.json()
         if not isinstance(data, list):
-            raise ValueError("Unexpected calendar JSON shape")
+            raise TypeError("Unexpected calendar JSON shape")
         return data
 
     def _ingest_raw(self, raw_events: list[dict[str, Any]], now: datetime, ok: bool) -> None:
@@ -277,9 +277,8 @@ class MacroFilter:
             return False
         if wd == 5:  # Saturday
             return False
-        if wd == 6 and hour < 22.0:  # Sunday before 22:00
-            return False
-        return True
+        # Sunday before 22:00 UTC is closed
+        return not (wd == 6 and hour < 22.0)
 
     def blackout_status(
         self,

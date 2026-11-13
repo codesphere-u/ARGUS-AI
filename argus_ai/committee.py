@@ -1,17 +1,20 @@
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Literal
+
 import pandas as pd
 
-from argus_ai.core.models import (
-    MarketContext, AgentVote, ConsensusDecision, TradePassport, DevilsAdvocateReview
-)
-from argus_ai.agents.quant_agent import QuantAgent
-from argus_ai.agents.news_agent import NewsAgent
-from argus_ai.agents.macro_agent import MacroAgent
-from argus_ai.agents.options_agent import OptionsFlowAgent
 from argus_ai.agents.devils_advocate import DevilsAdvocateAgent
+from argus_ai.agents.macro_agent import MacroAgent
+from argus_ai.agents.news_agent import NewsAgent
+from argus_ai.agents.options_agent import OptionsFlowAgent
+from argus_ai.agents.quant_agent import QuantAgent
 from argus_ai.agents.risk_commander import RiskCommander
 from argus_ai.core.adaptive_weights import AdaptiveWeightManager
+from argus_ai.core.models import (
+    ConsensusDecision,
+    MarketContext,
+    TradePassport,
+)
 
 logger = logging.getLogger("argus.committee")
 
@@ -24,12 +27,17 @@ class CommitteeOrchestrator:
     stress-testing, synthesizes consensus, and generates institutional Trade Passports.
     """
 
-    def __init__(self, adaptive_weight_mgr: Optional[AdaptiveWeightManager] = None):
-        self.quant = QuantAgent()
-        self.news = NewsAgent()
-        self.macro = MacroAgent()
-        self.options = OptionsFlowAgent()
-        self.devils_advocate = DevilsAdvocateAgent()
+    def __init__(
+        self,
+        adaptive_weight_mgr: AdaptiveWeightManager | None = None,
+        use_llm: bool = True,
+    ) -> None:
+        self.use_llm = use_llm
+        self.quant = QuantAgent(use_llm=use_llm)
+        self.news = NewsAgent(use_llm=use_llm)
+        self.macro = MacroAgent(use_llm=use_llm)
+        self.options = OptionsFlowAgent(use_llm=use_llm)
+        self.devils_advocate = DevilsAdvocateAgent(use_llm=use_llm)
         self.risk_commander = RiskCommander()
         self.weight_mgr = adaptive_weight_mgr or AdaptiveWeightManager()
 
@@ -76,7 +84,7 @@ class CommitteeOrchestrator:
             options_vote.confidence * w_options
         )
 
-        proposed_direction = "LONG" if composite_score >= 0 else "SHORT"
+        proposed_direction: Literal["LONG", "SHORT"] = "LONG" if composite_score >= 0 else "SHORT"
 
         # 4. Adversarial Stress-Test by Devil's Advocate
         da_review = self.devils_advocate.stress_test(
@@ -86,7 +94,7 @@ class CommitteeOrchestrator:
         )
 
         # 5. Consensus & Veto Determination
-        status = "HOLD"
+        status: Literal["APPROVED", "DOWNSIZED", "REJECTED", "VETOED"] = "REJECTED"
         downsize_factor = 1.0
         primary_cat = quant_vote.key_arguments[0] if quant_vote.key_arguments else "Technical alignment"
         main_opp = da_review.identified_traps[0] if da_review.identified_traps else "None"

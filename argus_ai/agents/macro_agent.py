@@ -1,6 +1,10 @@
-from typing import List
+import logging
+from typing import Literal
+
 from argus_ai.agents.base_agent import BaseAgent
 from argus_ai.core.models import AgentVote, MarketContext
+
+logger = logging.getLogger("argus.macro_agent")
 
 
 class MacroAgent(BaseAgent):
@@ -9,8 +13,8 @@ class MacroAgent(BaseAgent):
     VIX implied volatility, interest rate environment, and sector rotation.
     """
 
-    def __init__(self):
-        super().__init__("Macro & Sector Agent")
+    def __init__(self, use_llm: bool = True) -> None:
+        super().__init__("Macro & Sector Agent", use_llm=use_llm)
 
     def analyze(self, ctx: MarketContext) -> AgentVote:
         vix = ctx.vix_level
@@ -38,15 +42,15 @@ class MacroAgent(BaseAgent):
                     score=float(llm_res.get("score", 0.0)),
                     key_arguments=llm_res.get("key_arguments", []),
                     concerns_raised=llm_res.get("concerns_raised", []),
-                    metrics={"vix": vix, "regime": regime}
+                    metrics={"vix": vix, "regime": regime},
                 )
-            except Exception:
-                pass
+            except (TypeError, KeyError, ValueError) as exc:
+                logger.debug("[%s] Invalid LLM JSON payload (%s); using heuristic.", self.name, exc)
 
         # Deterministic Macro Rule Engine
         score = 0.0
-        recs: List[str] = []
-        concerns: List[str] = []
+        recs: list[str] = []
+        concerns: list[str] = []
 
         if vix < 15.0:
             score += 35.0
@@ -71,6 +75,7 @@ class MacroAgent(BaseAgent):
             score -= 10.0
             concerns.append("Index breadth showing range-bound rotational chop")
 
+        rec: Literal["BUY", "SELL", "HOLD", "VETO"]
         if score >= 20.0:
             rec = "BUY"
             conf = 0.80

@@ -1,19 +1,20 @@
-import pytest
-import pandas as pd
-import numpy as np
 from unittest.mock import MagicMock, patch
 
-from argus_ai.core.models import (
-    MarketContext, AgentVote, ConsensusDecision, TradePassport, DevilsAdvocateReview, KillSwitchState
-)
-from argus_ai.committee import CommitteeOrchestrator
-from argus_ai.agents.quant_agent import QuantAgent
-from argus_ai.agents.news_agent import NewsAgent
-from argus_ai.agents.macro_agent import MacroAgent
+import numpy as np
+import pandas as pd
+import pytest
+
 from argus_ai.agents.devils_advocate import DevilsAdvocateAgent
+from argus_ai.agents.quant_agent import QuantAgent
 from argus_ai.agents.risk_commander import RiskCommander
-from argus_ai.agents.audit_agent import AuditAgent
+from argus_ai.committee import CommitteeOrchestrator
 from argus_ai.core.kill_switch import EmergencyKillSwitch
+from argus_ai.core.models import (
+    AgentVote,
+    ConsensusDecision,
+    MarketContext,
+    TradePassport,
+)
 
 
 @pytest.fixture(autouse=True)

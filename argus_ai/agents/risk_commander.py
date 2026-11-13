@@ -1,7 +1,8 @@
 import logging
-from typing import Dict, Any, Tuple
+from typing import Any
+
 from argus_ai.config.settings import CONFIG, RiskSettings
-from argus_ai.core.models import MarketContext, ConsensusDecision
+from argus_ai.core.models import ConsensusDecision, MarketContext
 
 logger = logging.getLogger("argus.risk_commander")
 
@@ -12,7 +13,7 @@ class RiskCommander:
     target profit levels, and validates portfolio exposure limits.
     """
 
-    def __init__(self, risk_settings: RiskSettings = None):
+    def __init__(self, risk_settings: RiskSettings | None = None) -> None:
         self.settings = risk_settings or CONFIG.risk
 
     def calculate_trade_parameters(
@@ -20,8 +21,8 @@ class RiskCommander:
         ctx: MarketContext,
         direction: str,
         consensus: ConsensusDecision,
-        account_equity: float
-    ) -> Dict[str, Any]:
+        account_equity: float,
+    ) -> dict[str, Any]:
         """
         Derive dynamic bracket prices (Entry, Stop Loss, Take Profit)
         and volatility-calibrated share quantity.

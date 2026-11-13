@@ -1,6 +1,6 @@
-import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Any
+
 from argus_ai.core.models import TradePassport
 
 logger = logging.getLogger("argus.alerts")
@@ -14,7 +14,7 @@ class InteractiveAlertDispatcher:
     """
 
     @staticmethod
-    def format_telegram_alert(passport: TradePassport) -> Dict[str, Any]:
+    def format_telegram_alert(passport: TradePassport) -> dict[str, Any]:
         """Format an interactive Telegram message payload with inline keyboard."""
         status_emojis = {
             "APPROVED": "✅ [APPROVED FOR ALPACA DISPATCH]",
@@ -59,7 +59,7 @@ class InteractiveAlertDispatcher:
         }
 
     @staticmethod
-    def format_discord_webhook(passport: TradePassport) -> Dict[str, Any]:
+    def format_discord_webhook(passport: TradePassport) -> dict[str, Any]:
         """Format an embed payload for Discord webhook notifications."""
         color = 0x10B981 if passport.consensus.status == "APPROVED" else (
             0xF59E0B if passport.consensus.status == "DOWNSIZED" else 0xEF4444

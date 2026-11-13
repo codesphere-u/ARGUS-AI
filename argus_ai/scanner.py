@@ -1,14 +1,12 @@
 import logging
-from typing import List, Optional
-import pandas as pd
 
+from argus_ai.agents.audit_agent import AuditAgent
+from argus_ai.agents.execution_agent import ExecutionAgent
+from argus_ai.committee import CommitteeOrchestrator
 from argus_ai.config.settings import CONFIG
 from argus_ai.core.alpaca_client import AlpacaClient
 from argus_ai.core.kill_switch import EmergencyKillSwitch
 from argus_ai.core.models import MarketContext, TradePassport
-from argus_ai.committee import CommitteeOrchestrator
-from argus_ai.agents.execution_agent import ExecutionAgent
-from argus_ai.agents.audit_agent import AuditAgent
 
 logger = logging.getLogger("argus.scanner")
 
@@ -22,12 +20,13 @@ class OpportunityScanner:
 
     def __init__(
         self,
-        alpaca_client: Optional[AlpacaClient] = None,
-        kill_switch: Optional[EmergencyKillSwitch] = None
-    ):
+        alpaca_client: AlpacaClient | None = None,
+        kill_switch: EmergencyKillSwitch | None = None,
+        use_llm: bool = True,
+    ) -> None:
         self.alpaca = alpaca_client or AlpacaClient()
         self.kill_switch = kill_switch or EmergencyKillSwitch(self.alpaca)
-        self.committee = CommitteeOrchestrator()
+        self.committee = CommitteeOrchestrator(use_llm=use_llm)
         self.execution = ExecutionAgent(self.alpaca, self.kill_switch)
         self.audit = AuditAgent()
 
@@ -39,7 +38,7 @@ class OpportunityScanner:
         # 2. Fetch market data
         current_price = self.alpaca.get_latest_price(symbol)
         bars_df = self.alpaca.get_historical_bars(symbol, bars=50)
-        
+
         # 3. Formulate market context
         ctx = MarketContext(
             ticker=symbol,
@@ -51,18 +50,18 @@ class OpportunityScanner:
             vix_level=custom_vix,
             recent_news=[
                 f"{symbol} experiencing elevated institutional volume on product roadmap updates",
-                f"Sector momentum remains constructive across tech and growth equities"
-            ]
+                "Sector momentum remains constructive across tech and growth equities",
+            ],
         )
 
         acc = self.alpaca.get_account_summary()
-        equity = acc.get("equity", 100000.0)
+        equity = float(acc.get("equity", 100000.0))
 
         # 4. Committee Deliberation
         passport = self.committee.evaluate_opportunity(
             ctx=ctx,
             bars_df=bars_df,
-            account_equity=equity
+            account_equity=equity,
         )
 
         # 5. Execution Pipeline
@@ -73,14 +72,14 @@ class OpportunityScanner:
 
         return passport
 
-    def scan_watchlist(self, watchlist: Optional[List[str]] = None) -> List[TradePassport]:
+    def scan_watchlist(self, watchlist: list[str] | None = None) -> list[TradePassport]:
         """Scan full watchlist and return generated Trade Passports."""
         symbols = watchlist or CONFIG.watchlist
-        results: List[TradePassport] = []
+        results: list[TradePassport] = []
         for sym in symbols:
             try:
                 p = self.scan_asset(sym)
                 results.append(p)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - isolate watchlist asset scan failures
                 logger.error("[SCANNER] Error scanning %s: %s", sym, e)
         return results

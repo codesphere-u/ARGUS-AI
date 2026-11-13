@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Literal
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -277,12 +278,11 @@ def alert_opportunities(
         alert_key = f"{o.symbol}:{side_k}"
         prev = _LAST_OPP_ALERT.get(alert_key) or _LAST_OPP_ALERT.get(o.symbol)
         if prev is not None:
-            p_side, p_score, p_price, p_ts = prev
+            p_side, p_score, _p_price, p_ts = prev
             same_side = p_side == side_k
-            if same_side and (now_ts - p_ts) < cooldown_sec:
+            if same_side and (now_ts - p_ts) < cooldown_sec and score_k <= p_score + 0.05:
                 # Same side within cooldown — skip unless score jumped materially
-                if score_k <= p_score + 0.05:
-                    continue
+                continue
         _LAST_OPP_ALERT[alert_key] = (side_k, score_k, price_k, now_ts)
         _LAST_OPP_ALERT[o.symbol] = (side_k, score_k, price_k, now_ts)
         fresh.append(o)

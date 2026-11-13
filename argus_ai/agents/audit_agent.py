@@ -1,9 +1,8 @@
-import json
 import logging
-from typing import List, Dict, Any
 from pathlib import Path
-from argus_ai.core.models import TradePassport
+
 from argus_ai.agents.base_agent import BaseAgent
+from argus_ai.core.models import TradePassport
 
 logger = logging.getLogger("argus.audit")
 
@@ -14,11 +13,11 @@ class AuditAgent(BaseAgent):
     generates Trade Passports, and conducts post-trade attribution reviews.
     """
 
-    def __init__(self, log_dir: str = "argus_ai/data/passports"):
-        super().__init__("Audit & Reflection Agent")
+    def __init__(self, log_dir: str = "argus_ai/data/passports", use_llm: bool = True) -> None:
+        super().__init__("Audit & Reflection Agent", use_llm=use_llm)
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        self.passports: List[TradePassport] = []
+        self.passports: list[TradePassport] = []
 
     def record_passport(self, passport: TradePassport) -> Path:
         """Persist trade passport to JSON log file."""
@@ -50,7 +49,7 @@ class AuditAgent(BaseAgent):
 
         llm_res = self.query_llm_json(system_prompt, user_prompt)
         if llm_res and "reflection" in llm_res:
-            reflection = llm_res["reflection"]
+            reflection = str(llm_res["reflection"])
         else:
             if exit_pnl > 0:
                 reflection = f"Trade on {passport.ticker} hit target profit. Quant momentum overrode initial Devil's Advocate cautions cleanly."

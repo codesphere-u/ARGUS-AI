@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal
@@ -32,7 +33,7 @@ def _f(row: pd.Series, col: str, default: float = 0.0) -> float:
         return default
     try:
         v = float(row[col])
-        if v != v:  # NaN
+        if math.isnan(v):
             return default
         return v
     except (TypeError, ValueError):
@@ -210,12 +211,11 @@ def evaluate_hot_grab(
     # Require H1 agree OR policy not opposing
     ok_h1, h1_msg = h1_trend_ok(row, side)
     policy_opposes = False
-    if policy_action is not None:
+    if policy_action is not None and (
+        side == "buy" and policy_action == 2 or side == "sell" and policy_action == 1
+    ):
         # PPO: 0=hold, 1=buy, 2=sell (TradingEnv convention used live as int hints)
-        if side == "buy" and policy_action == 2:
-            policy_opposes = True
-        elif side == "sell" and policy_action == 1:
-            policy_opposes = True
+        policy_opposes = True
     if ok_h1:
         reasons.append(h1_msg)
     elif not policy_opposes:

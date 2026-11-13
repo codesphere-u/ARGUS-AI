@@ -14,9 +14,8 @@ import pandas as pd
 from config import BOT, MODELS_DIR, ONLINE, OnlineLearnConfig
 from environment import TradingEnv
 from macro_filter import MacroFilter
-from trade_journal import TradeJournal, default_journal
-
 from telegram_format import format_learn_complete, format_learn_error
+from trade_journal import TradeJournal, default_journal
 
 logger = logging.getLogger(__name__)
 
@@ -198,11 +197,11 @@ def run_daily_update(
         if notify:
             notify(msg)
         return result
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         if backup.exists():
             shutil.copy2(backup, model_path)
         result.update({"status": "error", "reason": str(exc)})
-        logger.exception("Online learn failed: %s", exc)
+        logger.exception("Online learn failed")
         if notify:
             notify(format_learn_error(exc))
         return result

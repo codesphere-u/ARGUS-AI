@@ -169,8 +169,8 @@ class GeminiAdvisor:
                 # Older SDK shapes
                 try:
                     config_kwargs["tools"] = [{"google_search": {}}]
-                except Exception:  # noqa: BLE001
-                    pass
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("Google search grounding unavailable: %s", exc)
 
         # google-genai generate_content is sync; enforce soft timeout via wall clock check after
         t0 = time.time()

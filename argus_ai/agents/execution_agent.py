@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Any, Optional
+
 from argus_ai.core.alpaca_client import AlpacaClient
 from argus_ai.core.kill_switch import EmergencyKillSwitch
 from argus_ai.core.models import TradePassport
@@ -13,7 +13,7 @@ class ExecutionAgent:
     Ensures pre-flight compliance with Kill Switch status and bracket validation.
     """
 
-    def __init__(self, alpaca_client: AlpacaClient, kill_switch: EmergencyKillSwitch):
+    def __init__(self, alpaca_client: AlpacaClient, kill_switch: EmergencyKillSwitch) -> None:
         self.alpaca = alpaca_client
         self.kill_switch = kill_switch
 
