@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Risk Rules — ARGUS AI v2.2.0</title>
+  <meta name="description" content="Devil's Advocate veto gates, Risk Commander ATR bracket geometry, and emergency kill-switch circuit breakers.">
+  <link rel="canonical" href="https://codesphere-u.github.io/ARGUS-AI/rules.html">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="index.html"><img src="favicon.svg" alt="ARGUS AI"><span>ARGUS AI</span></a>
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation">Menu</button>
+      <nav id="nav-links" class="nav-links" aria-label="Primary">
+        <a href="index.html">Overview</a>
+        <a href="studio.html">Committee Studio</a>
+        <a href="proof.html">Backtest Proof</a>
+        <a class="active" href="rules.html">Risk Rules</a>
+        <a href="docs.html">Docs</a>
+        <a class="nav-cta" href="https://github.com/codesphere-u/ARGUS-AI/releases/tag/v2.2.0">v2.2.0 Release</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 3rem 0 4rem;">
+    <span class="eyebrow">Deterministic Capital Protection</span>
+    <h1>Risk Commander &amp; Veto Rules</h1>
+    <p class="lead">Five non-negotiable invariants enforced on every TradePassport before order routing.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Rule ID</th><th>Threshold / Formula</th><th>Enforcement</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>DEVILS_ADVOCATE_VETO_AUTHORITY</code></td><td><code>disqualification_risk_pct &gt;= 75%</code></td><td>Unilateral trade rejection</td></tr>
+          <tr><td><code>DEVILS_ADVOCATE_DOWNSIZE_RULE</code></td><td><code>45% &lt;= risk &lt; 75%</code></td><td>Automatic 50% position cut</td></tr>
+          <tr><td><code>BRACKET_GEOMETRY</code></td><td><code>1.5x ATR</code> stop distance</td><td>Rejects unbracketed orders</td></tr>
+          <tr><td><code>RISK_REWARD_FLOOR</code></td><td><code>&ge; 2.0 : 1.0</code> target ratio</td><td>Blocks asymmetric negative R:R</td></tr>
+          <tr><td><code>ACCOUNT_RISK_BUDGET_CAP</code></td><td><code>&le; 1.0%</code> equity per trade</td><td>Caps position size deterministically</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div><strong>ARGUS AI v2.2.0</strong> · Risk Rules</div>
+      <div class="footer-links"><a href="index.html">Overview</a><a href="studio.html">Committee Studio</a><a href="docs.html">Docs</a></div>
+    </div>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

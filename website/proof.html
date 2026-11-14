@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Backtest Proof — ARGUS AI v2.2.0</title>
+  <meta name="description" content="Walk-forward backtesting invariants, PointInTimeGuard guarantees, and TradePassport SHA-256 replay verification.">
+  <link rel="canonical" href="https://codesphere-u.github.io/ARGUS-AI/proof.html">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="index.html"><img src="favicon.svg" alt="ARGUS AI"><span>ARGUS AI</span></a>
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation">Menu</button>
+      <nav id="nav-links" class="nav-links" aria-label="Primary">
+        <a href="index.html">Overview</a>
+        <a href="studio.html">Committee Studio</a>
+        <a class="active" href="proof.html">Backtest Proof</a>
+        <a href="rules.html">Risk Rules</a>
+        <a href="docs.html">Docs</a>
+        <a class="nav-cta" href="https://github.com/codesphere-u/ARGUS-AI/releases/tag/v2.2.0">v2.2.0 Release</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 3rem 0 4rem;">
+    <span class="eyebrow eyebrow-amber">Point-in-Time &amp; Counterfactual Proof</span>
+    <h1>Walk-Forward Backtest &amp; Passport Replay</h1>
+    <p class="lead">Every backtest enforces strict timestamp ordering and compares the 7-agent committee against a naive single-agent baseline.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Invariant</th><th>Verifier</th><th>Guaranteed Property</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>PointInTimeGuard</code></td><td><code>argus_ai/backtest.py</code></td><td>Raises <code>LookaheadLeakageError</code> if any bar exceeds <code>decision_timestamp</code></td></tr>
+          <tr><td><code>ExecutionCostModel</code></td><td><code>argus_ai/backtest.py</code></td><td>Deducts half-spread, commission bps, and ATR-scaled slippage</td></tr>
+          <tr><td><code>compute_passport_digest</code></td><td><code>replay_passport</code></td><td>Recomputes canonical SHA-256 digest and verifies all 5 risk invariants</td></tr>
+          <tr><td><code>AdversarialBacktestEngine</code></td><td><code>argus backtest</code></td><td>Tracks counterfactual <code>veto_saved_loss_usd</code> and disagreement entropy</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div><strong>ARGUS AI v2.2.0</strong> · Backtest Proof</div>
+      <div class="footer-links"><a href="index.html">Overview</a><a href="rules.html">Risk Rules</a><a href="docs.html">Docs</a></div>
+    </div>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

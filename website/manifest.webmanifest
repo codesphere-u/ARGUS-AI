@@ -1,0 +1,16 @@
+{
+  "name": "ARGUS AI — Multi-Agent Investment Committee",
+  "short_name": "ARGUS AI",
+  "version": "2.2.0",
+  "start_url": "/ARGUS-AI/",
+  "display": "standalone",
+  "background_color": "#fffdf2",
+  "theme_color": "#1d4ed8",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

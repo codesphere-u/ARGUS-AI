@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "argus-ai"
-version = "2.1.0"
+version = "2.2.0"
 description = "Autonomous Multi-Agent Investment Committee & Trading Desk with Adversarial Dissent, Trade Passports, and Deterministic Replay"
 readme = "README.md"
 license = "MIT"

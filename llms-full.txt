@@ -1,0 +1,9 @@
+# ARGUS AI v2.2.0 — Complete Technical Reference
+
+ARGUS AI convenes a 7-agent institutional investment committee (`Quant`, `News`, `Macro`, `Options Flow`, `Devil's Advocate`, `Risk Commander`, `Audit`) with unilateral adversarial veto (`disqualification_risk_pct >= 75%`) and 50% downsize (`>= 45%`).
+
+## Core Subsystems
+- **Point-in-Time Backtester (`argus_ai/backtest.py`)**: `PointInTimeGuard`, `ExecutionCostModel` (spread, commission, ATR slippage), and counterfactual `veto_saved_loss_usd`.
+- **SHA-256 Trade Passports (`replay_passport`)**: Verifies `BRACKET_GEOMETRY`, `RISK_REWARD_FLOOR`, `DEVILS_ADVOCATE_VETO_AUTHORITY`, `DEVILS_ADVOCATE_DOWNSIZE_RULE`, and `ACCOUNT_RISK_BUDGET_CAP`.
+- **MCP JSON-RPC 2.0 Server (`argus_ai/mcp_server.py`)**: Exposes `argus_convene_committee`, `argus_emergency_kill_switch`, and `alpaca_get_portfolio_telemetry`.
+- **CLI (`argus_ai/cli.py`)**: `scan`, `single`, `adversarial-demo`, `kill-switch`, `mcp`, `stream`, `weights`, `backtest`, `replay`, `serve`.

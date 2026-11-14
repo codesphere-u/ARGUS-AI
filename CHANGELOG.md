@@ -2,6 +2,12 @@
 
 All notable changes to **ARGUS AI** are documented in this file.
 
+## [2.2.0] - 2026-11-14
+
+### Added
+- **Warm Ivory Editorial Multi-Page Website (`website/`)**: Treasury Cobalt (`#1d4ed8`) & Bullion Amber (`#b45309`) Handy-inspired showcase with dedicated pages (`index.html`, `studio.html`, `proof.html`, `rules.html`, `docs.html`), interactive Investment Committee & Devil's Advocate Veto Studio, TradePassport Replay & Backtest Proof, and full GEO/SEO assets (`llms.txt`, `llms-full.txt`, `sitemap.xml`, `robots.txt`, `manifest.webmanifest`, `og-image.svg`).
+- **GitHub Pages Workflow & Docs**: Added `.github/workflows/pages.yml`, [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md), root `llms.txt` / `llms-full.txt`, and `tests/test_website_and_docs.py`.
+
 ## [2.1.0] - 2026-11-02
 
 ### Added

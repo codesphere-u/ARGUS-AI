@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Committee Studio — ARGUS AI v2.2.0</title>
+  <meta name="description" content="Interactive ARGUS AI investment committee and Devil's Advocate veto simulator.">
+  <link rel="canonical" href="https://codesphere-u.github.io/ARGUS-AI/studio.html">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="index.html"><img src="favicon.svg" alt="ARGUS AI"><span>ARGUS AI</span></a>
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation">Menu</button>
+      <nav id="nav-links" class="nav-links" aria-label="Primary">
+        <a href="index.html">Overview</a>
+        <a class="active" href="studio.html">Committee Studio</a>
+        <a href="proof.html">Backtest Proof</a>
+        <a href="rules.html">Risk Rules</a>
+        <a href="docs.html">Docs</a>
+        <a class="nav-cta" href="https://github.com/codesphere-u/ARGUS-AI/releases/tag/v2.2.0">v2.2.0 Release</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 3rem 0 4rem;">
+    <span class="eyebrow">Interactive Veto &amp; Sizing Simulator</span>
+    <h1>Committee Deliberation Studio</h1>
+    <p class="lead">Simulate how Devil's Advocate disqualification risk and VIX regime adjust Risk Commander sizing and TradePassport gates.</p>
+
+    <div class="studio-grid">
+      <section class="card card-white">
+        <h2>Committee Inputs</h2>
+        <div class="field">
+          <label for="studio-ticker">Ticker Symbol</label>
+          <select id="studio-ticker">
+            <option value="NVDA">NVDA</option>
+            <option value="AAPL">AAPL</option>
+            <option value="MSFT">MSFT</option>
+            <option value="SPY">SPY</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="studio-regime">Market Regime</label>
+          <select id="studio-regime">
+            <option value="BULLISH">BULLISH</option>
+            <option value="CHOPPY">CHOPPY</option>
+            <option value="BEARISH">BEARISH</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="studio-vix">VIX Implied Volatility</label>
+          <input id="studio-vix" type="number" min="10" max="80" value="21">
+        </div>
+        <div class="field">
+          <label for="studio-dissent">Devil's Advocate Risk (%)</label>
+          <input id="studio-dissent" type="number" min="0" max="100" value="52">
+        </div>
+        <button id="studio-run" class="btn btn-primary" type="button" style="width:100%;">Convene Committee</button>
+      </section>
+
+      <section class="card">
+        <span class="badge">TradePassport Gate</span>
+        <h2 style="margin-top:0.6rem;">Consensus &amp; Risk Output</h2>
+        <pre id="studio-output" class="code-block">{}</pre>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div><strong>ARGUS AI v2.2.0</strong> · Committee Studio</div>
+      <div class="footer-links"><a href="index.html">Overview</a><a href="proof.html">Backtest Proof</a><a href="docs.html">Docs</a></div>
+    </div>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

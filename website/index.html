@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARGUS AI v2.2.0 — Multi-Agent Investment Committee &amp; Trading Desk</title>
+  <meta name="description" content="Autonomous 7-agent investment committee with Devil's Advocate veto authority, SHA-256 Trade Passports, PointInTimeGuard backtesting, and deterministic replay.">
+  <meta name="theme-color" content="#1d4ed8">
+  <link rel="canonical" href="https://codesphere-u.github.io/ARGUS-AI/">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ARGUS AI v2.2.0 — Multi-Agent Investment Committee">
+  <meta property="og:description" content="7-agent investment committee with Devil's Advocate veto, SHA-256 Trade Passports, and walk-forward backtesting.">
+  <meta property="og:url" content="https://codesphere-u.github.io/ARGUS-AI/">
+  <meta property="og:image" content="https://codesphere-u.github.io/ARGUS-AI/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ARGUS AI v2.2.0 — Adversarial AI Trading Desk">
+  <meta name="twitter:description" content="An AI trading desk that knows when to question itself, downsize, or veto a trade.">
+  <meta name="twitter:image" content="https://codesphere-u.github.io/ARGUS-AI/og-image.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Newsreader:opsz,wght@6..72,600;6..72,700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script defer data-domain="codesphere-u.github.io" src="https://plausible.io/js/script.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "Codesphere Innovations (U) Limited",
+        "url": "https://github.com/codesphere-u"
+      },
+      {
+        "@type": "Person",
+        "name": "Ivan Akandwanaho"
+      },
+      {
+        "@type": "WebSite",
+        "name": "ARGUS AI",
+        "url": "https://codesphere-u.github.io/ARGUS-AI/"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "ARGUS AI",
+        "softwareVersion": "2.2.0",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Linux, macOS, Windows",
+        "license": "https://opensource.org/licenses/MIT",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How does the Devil's Advocate veto work in ARGUS AI?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "When the Devil's Advocate scores disqualification risk >= 75%, ARGUS AI vetoes the trade unilaterally; at 45-74%, Risk Commander cuts position size by 50%."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How are backtests protected against lookahead leakage?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "PointInTimeGuard enforces strict timestamp <= decision_timestamp and monotonic ordering on every historical bar passed to the investment committee."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="index.html">
+        <img src="favicon.svg" alt="ARGUS AI shield mark">
+        <span>ARGUS AI</span>
+      </a>
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation">Menu</button>
+      <nav id="nav-links" class="nav-links" aria-label="Primary">
+        <a class="active" href="index.html">Overview</a>
+        <a href="studio.html">Committee Studio</a>
+        <a href="proof.html">Backtest Proof</a>
+        <a href="rules.html">Risk Rules</a>
+        <a href="docs.html">Docs</a>
+        <a class="nav-cta" href="https://github.com/codesphere-u/ARGUS-AI/releases/tag/v2.2.0">v2.2.0 Release</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <span class="eyebrow">v2.2.0 · 7-Agent Investment Committee</span>
+        <h1>An AI trading desk that <span class="accent-word">disagrees with itself</span>.</h1>
+        <p class="lead">ARGUS AI combines Quant, News, Macro, and Options Flow specialists with an adversarial Devil's Advocate veto gate, immutable SHA-256 Trade Passports, and point-in-time backtesting.</p>
+
+        <div class="btn-row">
+          <a class="btn btn-primary" href="studio.html">Open Committee Studio</a>
+          <a class="btn btn-amber" href="docs.html">Read Docs</a>
+          <a class="btn" href="https://github.com/codesphere-u/ARGUS-AI">GitHub Repository</a>
+        </div>
+
+        <div class="install-box">
+          <code>argus adversarial-demo</code>
+          <button class="copy-btn" type="button" data-copy="argus adversarial-demo">Copy</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="grid-4">
+          <div class="card card-white">
+            <div class="stat-value">7 Agents</div>
+            <div class="stat-label">Quant, News, Macro, Options, Devil's Advocate, Risk, Audit</div>
+          </div>
+          <div class="card card-white">
+            <div class="stat-value">&ge;75% Veto</div>
+            <div class="stat-label">Unilateral trade rejection; 45-74% triggers 50% downsize</div>
+          </div>
+          <div class="card card-white">
+            <div class="stat-value">1.5x ATR</div>
+            <div class="stat-label">Deterministic stop bracket with 2:1+ reward-to-risk floor</div>
+          </div>
+          <div class="card card-white">
+            <div class="stat-value">SHA-256</div>
+            <div class="stat-label">Immutable Trade Passports with deterministic replay</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Institutional architecture without blind execution</h2>
+        <div class="grid-3">
+          <article class="card">
+            <span class="badge">Adversarial Dissent</span>
+            <h3>Devil's Advocate Gate</h3>
+            <p>Stress-tests every thesis for liquidity traps, earnings shocks, and volatility spikes before Risk Commander can authorize capital.</p>
+          </article>
+          <article class="card">
+            <span class="badge badge-amber">Point-in-Time</span>
+            <h3>Anti-Leakage Backtester</h3>
+            <p><code>PointInTimeGuard</code> and <code>ExecutionCostModel</code> model spread, commission, and ATR slippage while quantifying counterfactual veto savings.</p>
+          </article>
+          <article class="card">
+            <span class="badge">MCP &amp; Replay</span>
+            <h3>Cryptographic Passports</h3>
+            <p>Every decision emits a <code>TradePassport</code> digest verifiable offline via <code>argus replay</code> or via MCP JSON-RPC 2.0 tools.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div><strong>ARGUS AI v2.2.0</strong> · MIT License · Simulation &amp; Research Only</div>
+      <div class="footer-links">
+        <a href="docs.html">Docs</a>
+        <a href="llms.txt">llms.txt</a>
+        <a href="sitemap.xml">sitemap.xml</a>
+        <a href="https://github.com/codesphere-u/ARGUS-AI">GitHub</a>
+      </div>
+    </div>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

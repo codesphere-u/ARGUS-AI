@@ -3,11 +3,16 @@
 > *"We didn't build an AI that blindly trades. We built an AI trading desk that knows when to question itself, when to refuse a trade, and when to shut itself down."*
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![Version: 2.1.0](https://img.shields.io/badge/release-v2.1.0-cyan.svg)](CHANGELOG.md)
+[![Pages](https://github.com/codesphere-u/ARGUS-AI/actions/workflows/pages.yml/badge.svg)](https://codesphere-u.github.io/ARGUS-AI/)
+[![Version: 2.2.0](https://img.shields.io/badge/release-v2.2.0-cyan.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Alpaca API](https://img.shields.io/badge/Broker-Alpaca%20Trading%20API-yellow.svg)](https://alpaca.markets/)
-[![Tests: 61 Passed](https://img.shields.io/badge/pytest-61%20passed-brightgreen.svg)](tests/)
+[![Tests: 77+ Passed](https://img.shields.io/badge/pytest-77%2B%20passed-brightgreen.svg)](tests/)
 [![MCP Ready](https://img.shields.io/badge/MCP-JSON--RPC%202.0-orange.svg)](docs/MCP_INTEGRATION_GUIDE.md)
+
+> **Live Website & Docs:** [codesphere-u.github.io/ARGUS-AI](https://codesphere-u.github.io/ARGUS-AI/) · **Committee Studio:** [studio.html](https://codesphere-u.github.io/ARGUS-AI/studio.html) · **Backtest Proof:** [proof.html](https://codesphere-u.github.io/ARGUS-AI/proof.html) · **Risk Rules:** [rules.html](https://codesphere-u.github.io/ARGUS-AI/rules.html) · **Docs:** [docs.html](https://codesphere-u.github.io/ARGUS-AI/docs.html)
+>
+> **Documentation:** [Getting Started](docs/GETTING_STARTED.md) · [Architecture](docs/ARCHITECTURE.md) · [Trade Passport Spec](docs/TRADE_PASSPORT_SPEC.md) · [LLM Context](llms.txt)
 
 > **⚠️ Simulation & Risk Disclaimer:** ARGUS AI is an open-source multi-agent quantitative engineering and research platform. By default, it runs in **Offline Deterministic Simulation / Paper-Trading Mode** (`https://paper-api.alpaca.markets`) with zero live capital at risk. Nothing in this repository constitutes financial or investment advice.
 

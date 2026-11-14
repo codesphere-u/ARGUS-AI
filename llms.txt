@@ -1,0 +1,12 @@
+# ARGUS AI (`v2.2.0`)
+
+> Autonomous multi-agent investment committee & trading desk with Devil's Advocate veto authority, SHA-256 Trade Passports, point-in-time backtesting, and deterministic replay.
+
+- Website: https://codesphere-u.github.io/ARGUS-AI/
+- Committee Studio: https://codesphere-u.github.io/ARGUS-AI/studio.html
+- Backtest Proof: https://codesphere-u.github.io/ARGUS-AI/proof.html
+- Risk Rules: https://codesphere-u.github.io/ARGUS-AI/rules.html
+- Documentation: https://codesphere-u.github.io/ARGUS-AI/docs.html
+- Repository: https://github.com/codesphere-u/ARGUS-AI
+- Author: Ivan Akandwanaho (Codesphere Innovations (U) Limited)
+- License: MIT

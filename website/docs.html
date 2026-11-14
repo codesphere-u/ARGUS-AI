@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation — ARGUS AI v2.2.0</title>
+  <meta name="description" content="Installation, CLI commands, walk-forward backtesting, TradePassport replay, and MCP JSON-RPC 2.0 docs for ARGUS AI v2.2.0.">
+  <link rel="canonical" href="https://codesphere-u.github.io/ARGUS-AI/docs.html">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="index.html"><img src="favicon.svg" alt="ARGUS AI"><span>ARGUS AI</span></a>
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation">Menu</button>
+      <nav id="nav-links" class="nav-links" aria-label="Primary">
+        <a href="index.html">Overview</a>
+        <a href="studio.html">Committee Studio</a>
+        <a href="proof.html">Backtest Proof</a>
+        <a href="rules.html">Risk Rules</a>
+        <a class="active" href="docs.html">Docs</a>
+        <a class="nav-cta" href="https://github.com/codesphere-u/ARGUS-AI/releases/tag/v2.2.0">v2.2.0 Release</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container docs-layout">
+    <aside class="docs-sidebar" aria-label="Documentation sections">
+      <h4>ARGUS AI Docs</h4>
+      <a class="active" href="#install">1. Installation</a>
+      <a href="#cli">2. CLI Workflows</a>
+      <a href="#backtest">3. Backtest &amp; Replay</a>
+      <a href="#mcp">4. MCP Server</a>
+      <a href="#workbench">5. HTTP Workbench</a>
+    </aside>
+
+    <article class="docs-article">
+      <span class="eyebrow">Reference · v2.2.0</span>
+      <h1 style="margin-top:0.85rem;">ARGUS AI Documentation</h1>
+      <p class="lead">Run the 7-agent investment committee offline in deterministic paper mode, replay Trade Passports, or expose tools over MCP.</p>
+
+      <section id="install">
+        <h2>1. Installation</h2>
+        <pre class="code-block">git clone https://github.com/codesphere-u/ARGUS-AI.git
+cd ARGUS-AI
+uv sync --extra dev</pre>
+      </section>
+
+      <section id="cli">
+        <h2>2. CLI Workflows</h2>
+        <pre class="code-block">argus adversarial-demo
+argus single --ticker NVDA --regime CHOPPY --vix 24
+argus kill-switch --trigger-kill</pre>
+      </section>
+
+      <section id="backtest">
+        <h2>3. Backtest &amp; Passport Replay</h2>
+        <pre class="code-block">argus backtest --ticker NVDA --bars 120 --regime CHOPPY --vix 26
+argus replay --passport argus_ai/data/passports/PASSPORT-20261109-1F5BB2.json</pre>
+      </section>
+
+      <section id="mcp">
+        <h2>4. MCP JSON-RPC 2.0 Server</h2>
+        <p>Start the stdio MCP server with <code>argus mcp</code> to expose <code>argus_convene_committee</code>, <code>argus_emergency_kill_switch</code>, and <code>alpaca_get_portfolio_telemetry</code>.</p>
+      </section>
+
+      <section id="workbench">
+        <h2>5. HTTP Workbench</h2>
+        <pre class="code-block">argus serve --host 127.0.0.1 --port 8080</pre>
+      </section>
+    </article>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div><strong>ARGUS AI v2.2.0</strong> · Documentation</div>
+      <div class="footer-links"><a href="index.html">Overview</a><a href="studio.html">Committee Studio</a><a href="https://github.com/codesphere-u/ARGUS-AI">GitHub</a></div>
+    </div>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
