@@ -37,7 +37,7 @@ llm = [
     "websockets>=12.0",
 ]
 rl = [
-    "gymnasium>=0.29.0",
+    "gymnasium>=1.4.0",
     "matplotlib>=3.8.0",
 ]
 dev = [
