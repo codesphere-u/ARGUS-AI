@@ -26,13 +26,19 @@ class ArgusMCPServer:
         {
             "name": "argus_convene_committee",
             "description": "Convenes the ARGUS AI 7-agent Investment Committee to analyze an asset, stress-test it with Devil's Advocate, and produce a Trade Passport.",
+            "annotations": {
+                "readOnlyHint": False,
+                "destructiveHint": False,
+                "idempotentHint": False,
+                "openWorldHint": True,
+            },
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "ticker": {"type": "string", "description": "Ticker symbol (e.g., NVDA, AAPL, BTC/USD)"},
                     "current_price": {"type": "number", "description": "Current market price of asset"},
-                    "market_regime": {"type": "string", "enum": ["BULLISH", "BEARISH", "CHOPPY", "VOLATILE"], "default": "BULLISH"},
-                    "vix_level": {"type": "number", "default": 18.0}
+                    "market_regime": {"type": "string", "enum": ["BULLISH", "BEARISH", "CHOPPY", "VOLATILE"], "default": "BULLISH", "description": "Current broader equity market volatility regime."},
+                    "vix_level": {"type": "number", "default": 18.0, "description": "CBOE Volatility Index (VIX) level for risk sizing."}
                 },
                 "required": ["ticker", "current_price"]
             }
@@ -40,6 +46,12 @@ class ArgusMCPServer:
         {
             "name": "argus_get_trade_passport",
             "description": "Retrieves the immutable cryptographic Trade Passport for a trade by its ID.",
+            "annotations": {
+                "readOnlyHint": True,
+                "destructiveHint": False,
+                "idempotentHint": True,
+                "openWorldHint": False,
+            },
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -51,10 +63,16 @@ class ArgusMCPServer:
         {
             "name": "argus_emergency_kill_switch",
             "description": "Emergency institutional circuit breaker. Freezes automated trading and cancels all open Alpaca orders.",
+            "annotations": {
+                "readOnlyHint": False,
+                "destructiveHint": True,
+                "idempotentHint": False,
+                "openWorldHint": True,
+            },
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "action": {"type": "string", "enum": ["TRIP", "STATUS", "RESET"]},
+                    "action": {"type": "string", "enum": ["TRIP", "STATUS", "RESET"], "description": "Kill switch command: TRIP to halt trading, STATUS to inspect, or RESET to resume."},
                     "justification": {"type": "string", "description": "Audit reason for tripping or resetting"}
                 },
                 "required": ["action"]
@@ -63,23 +81,36 @@ class ArgusMCPServer:
         {
             "name": "alpaca_get_portfolio_telemetry",
             "description": "Fetches real-time equity, buying power, daily PnL, and open positions from Alpaca.",
+            "annotations": {
+                "readOnlyHint": True,
+                "destructiveHint": False,
+                "idempotentHint": True,
+                "openWorldHint": True,
+            },
             "inputSchema": {
                 "type": "object",
-                "properties": {}
+                "properties": {},
+                "required": []
             }
         },
         {
             "name": "alpaca_dispatch_bracket_order",
             "description": "Routes a pre-verified bracket order (entry, stop-loss, take-profit) directly to Alpaca.",
+            "annotations": {
+                "readOnlyHint": False,
+                "destructiveHint": True,
+                "idempotentHint": False,
+                "openWorldHint": True,
+            },
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "symbol": {"type": "string"},
-                    "qty": {"type": "number"},
-                    "side": {"type": "string", "enum": ["buy", "sell"]},
-                    "take_profit_price": {"type": "number"},
-                    "stop_loss_price": {"type": "number"},
-                    "client_order_id": {"type": "string"}
+                    "symbol": {"type": "string", "description": "Ticker symbol to trade (e.g. NVDA, AAPL)."},
+                    "qty": {"type": "number", "description": "Order share quantity."},
+                    "side": {"type": "string", "enum": ["buy", "sell"], "description": "Order direction ('buy' or 'sell')."},
+                    "take_profit_price": {"type": "number", "description": "Limit exit price for take-profit leg."},
+                    "stop_loss_price": {"type": "number", "description": "Stop price for protective stop-loss leg."},
+                    "client_order_id": {"type": "string", "description": "Optional caller-supplied idempotency key for the bracket order."}
                 },
                 "required": ["symbol", "qty", "side", "take_profit_price", "stop_loss_price"]
             }

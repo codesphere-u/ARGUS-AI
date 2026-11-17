@@ -72,6 +72,10 @@ def test_mcp_server_tools_list():
     assert "argus_convene_committee" in tool_names
     assert "argus_emergency_kill_switch" in tool_names
     assert "alpaca_get_portfolio_telemetry" in tool_names
+    for tool in tools:
+        ann = tool["annotations"]
+        for key in ("readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"):
+            assert isinstance(ann[key], bool)
 
 
 def test_mcp_server_convene_committee_tool():
