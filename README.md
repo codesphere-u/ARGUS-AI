@@ -9,6 +9,7 @@
 [![Alpaca API](https://img.shields.io/badge/Broker-Alpaca%20Trading%20API-yellow.svg)](https://alpaca.markets/)
 [![Tests: 77+ Passed](https://img.shields.io/badge/pytest-77%2B%20passed-brightgreen.svg)](tests/)
 [![MCP Ready](https://img.shields.io/badge/MCP-JSON--RPC%202.0-orange.svg)](docs/MCP_INTEGRATION_GUIDE.md)
+[![M8ven Score](https://m8ven.ai/badge/mcp/codesphere-u-argus-ai-18jtr8)](https://m8ven.ai/mcp/codesphere-u-argus-ai-18jtr8?s=readme)
 
 > **Live Website & Docs:** [codesphere-u.github.io/ARGUS-AI](https://codesphere-u.github.io/ARGUS-AI/) · **Committee Studio:** [studio.html](https://codesphere-u.github.io/ARGUS-AI/studio.html) · **Backtest Proof:** [proof.html](https://codesphere-u.github.io/ARGUS-AI/proof.html) · **Risk Rules:** [rules.html](https://codesphere-u.github.io/ARGUS-AI/rules.html) · **Docs:** [docs.html](https://codesphere-u.github.io/ARGUS-AI/docs.html)
 >
