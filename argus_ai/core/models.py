@@ -60,7 +60,7 @@ class TradePassport(BaseModel):
     )
     timestamp: str = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
     ticker: str
-    asset_class: Literal["US_EQUITY", "CRYPTO", "FOREX"] = "US_EQUITY"
+    asset_class: Literal["US_EQUITY", "CRYPTO", "FOREX", "MACRO_FUTURES"] = "US_EQUITY"
     direction: Literal["LONG", "SHORT"]
 
     # Pricing & Bracket Strategy

@@ -20,6 +20,7 @@ from argus_ai.core.alpaca_client import AlpacaClient
 from argus_ai.core.kill_switch import EmergencyKillSwitch
 from argus_ai.core.streamer import MarketStreamListener
 from argus_ai.http_server import serve
+from argus_ai.integrations.headline_arena import HeadlineArenaDesk, HeadlineArenaRunResult
 from argus_ai.mcp_server import ArgusMCPServer
 from argus_ai.scanner import OpportunityScanner
 
@@ -178,6 +179,35 @@ def display_replay_rich(verification):
     ))
 
 
+def display_headline_arena_rich(results: list[HeadlineArenaRunResult]) -> None:
+    tbl = Table(
+        title="Headline Arena Calibration Desk (Ternary Probability Forecasts & Refusal Scoring)",
+        header_style="bold cyan",
+    )
+    tbl.add_column("Asset", style="bold white")
+    tbl.add_column("Challenge ID", style="dim")
+    tbl.add_column("Committee", justify="center")
+    tbl.add_column("DA Risk", justify="right")
+    tbl.add_column("Forecast", justify="center")
+    tbl.add_column("P(Bear / Neut / Bull)", justify="center")
+    tbl.add_column("Mode", justify="center")
+
+    for res in results:
+        fc = res.forecast
+        probs = fc.probabilities
+        mode_str = "[bold green]SUBMITTED[/bold green]" if res.submitted else "[yellow]DRY-RUN[/yellow]"
+        tbl.add_row(
+            fc.asset,
+            fc.challenge_id,
+            fc.consensus_status,
+            f"{fc.disqualification_risk_pct:.0f}%",
+            f"{fc.direction.upper()} ({fc.confidence * 100:.0f}%)",
+            f"{probs['bearish']:.2f} / {probs['neutral']:.2f} / {probs['bullish']:.2f}",
+            mode_str,
+        )
+    console.print(tbl)
+
+
 def main(argv: list[str] | None = None) -> None:
     print_banner()
     parser = argparse.ArgumentParser(description="ARGUS AI Autonomous Trading Desk CLI")
@@ -194,6 +224,7 @@ def main(argv: list[str] | None = None) -> None:
             "backtest",
             "replay",
             "serve",
+            "headline-arena",
         ],
         nargs="?",
         default="scan",
@@ -208,6 +239,11 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--reset-kill", action="store_true", help="Reset manual kill switch")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Bind host for 'serve' HTTP workbench")
     parser.add_argument("--port", type=int, default=8000, help="Bind port for 'serve' HTTP workbench")
+    parser.add_argument("--asset", type=str, default="", help="Optional asset filter (e.g. GC, CL, ES, ZN) for 'headline-arena'")
+    parser.add_argument("--live-discovery", action="store_true", help="Discover live open challenges from Headline Arena")
+    parser.add_argument("--submit", action="store_true", help="Submit forecasts to Headline Arena (default is safe dry-run)")
+    parser.add_argument("--scorecard", action="store_true", help="Fetch and print the agent's Headline Arena scorecard")
+    parser.add_argument("--agent-id", type=str, default="", help="Optional Headline Arena agent_id for --scorecard")
 
     args = parser.parse_args(argv)
 
@@ -222,6 +258,27 @@ def main(argv: list[str] | None = None) -> None:
             )
         )
         serve(host=args.host, port=args.port)
+        return
+
+    if args.command == "headline-arena":
+        desk = HeadlineArenaDesk()
+        if args.scorecard:
+            scorecard = desk.client.get_scorecard(agent_id=args.agent_id or None)
+            console.print(
+                Panel(
+                    "\n".join(f"[cyan]{k}:[/cyan] {v}" for k, v in scorecard.items()),
+                    title="Headline Arena Agent Scorecard",
+                    border_style="cyan",
+                )
+            )
+            return
+
+        results = desk.run_cycle(
+            asset=args.asset or None,
+            live_discovery=args.live_discovery,
+            submit=args.submit,
+        )
+        display_headline_arena_rich(results)
         return
 
     alpaca = AlpacaClient()

@@ -217,10 +217,13 @@ python -m argus_ai.cli single --ticker NVDA --regime BULLISH --vix 16.5
 python -m argus_ai.cli adversarial-demo
 ```
 
-### 4. MCP Server, WebSocket Stream & Visual Dashboard
+### 4. MCP Server, Headline Arena Calibration Desk & Visual Dashboard
 ```bash
 # Launch Model Context Protocol (MCP) Server over stdio for Claude Desktop / Cursor
 python -m argus_ai.cli mcp
+
+# Run Headline Arena calibrated macro-futures dry-run (add --live-discovery --submit for live scoring)
+python -m argus_ai.cli headline-arena
 
 # Inspect Adaptive Bayesian Agent Weights
 python -m argus_ai.cli weights
@@ -255,6 +258,7 @@ All **61 tests** run deterministically offline in `< 1.0s` and verify:
 - 🏛️ **[ADR 001: Adversarial Devil's Advocate Veto](docs/decisions/001-adversarial-devils-advocate-veto.md)**
 - ⚠️ **[Known Limitations & Risk Disclosures](docs/limitations.md)**
 - 🔌 **[Model Context Protocol (MCP) Integration Guide](docs/MCP_INTEGRATION_GUIDE.md)**
+- 🎯 **[Headline Arena Calibration Integration](docs/HEADLINE_ARENA_INTEGRATION.md)**
 - 📜 **[Trade Passport Specification](docs/TRADE_PASSPORT_SPEC.md)**
 - 🤝 **[Team Contribution Guide](docs/CONTRIBUTING.md)**
 
