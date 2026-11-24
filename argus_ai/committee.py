@@ -147,9 +147,19 @@ class CommitteeOrchestrator:
         )
 
         # 7. Assemble Immutable Trade Passport
+        ticker_upper = ctx.ticker.upper()
+        macro_futures_roots = {"GC", "CL", "ES", "NQ", "ZN", "ZB", "SI", "HG", "NG", "DX"}
+        asset_class: Literal["US_EQUITY", "CRYPTO", "FOREX", "MACRO_FUTURES"]
+        if "BTC" in ticker_upper or "ETH" in ticker_upper:
+            asset_class = "CRYPTO"
+        elif ticker_upper in macro_futures_roots:
+            asset_class = "MACRO_FUTURES"
+        else:
+            asset_class = "US_EQUITY"
+
         passport = TradePassport(
             ticker=ctx.ticker,
-            asset_class="CRYPTO" if ("BTC" in ctx.ticker or "ETH" in ctx.ticker) else "US_EQUITY",
+            asset_class=asset_class,
             direction=proposed_direction,
             current_price=ctx.current_price,
             target_entry=risk_params["entry_price"],

@@ -35,10 +35,25 @@ class CommitteeSettings:
 
 
 @dataclass
+class HeadlineArenaSettings:
+    base_url: str = field(default_factory=lambda: os.getenv("HA_BASE_URL", "https://headlinearena.com"))
+    agent_id: str = field(default_factory=lambda: os.getenv("HA_AGENT_ID", ""))
+    client_secret: str = field(default_factory=lambda: os.getenv("HA_CLIENT_SECRET", ""))
+    credentials_path: str = field(
+        default_factory=lambda: os.getenv("HA_CREDENTIALS_PATH", "~/.headlinearena/credentials.json")
+    )
+    timeout_seconds: float = field(default_factory=lambda: float(os.getenv("HA_TIMEOUT_SECONDS", "20.0")))
+    model_provider: str = field(default_factory=lambda: os.getenv("HA_MODEL_PROVIDER", ""))
+    model_name: str = field(default_factory=lambda: os.getenv("HA_MODEL_NAME", ""))
+    model_version: str = field(default_factory=lambda: os.getenv("HA_MODEL_VERSION", ""))
+
+
+@dataclass
 class ArgusConfig:
     alpaca: AlpacaSettings = field(default_factory=AlpacaSettings)
     risk: RiskSettings = field(default_factory=RiskSettings)
     committee: CommitteeSettings = field(default_factory=CommitteeSettings)
+    headline_arena: HeadlineArenaSettings = field(default_factory=HeadlineArenaSettings)
     watchlist: list[str] = field(
         default_factory=lambda: [
             "NVDA",
