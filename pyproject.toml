@@ -38,7 +38,7 @@ llm = [
 ]
 rl = [
     "gymnasium>=0.29.0",
-    "matplotlib>=3.8.0",
+    "matplotlib>=3.10.9",
 ]
 dev = [
     "pytest>=8.0.0",
